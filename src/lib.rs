@@ -1,5 +1,5 @@
 //! This crate is to help serialize types as bytes and deserialize from bytes with special
-//! bytes order. This crate can be used in no_std environment and has no external dependencies.
+//! byte order. This crate can be used in [no_std] environment and has no external dependencies.
 //!
 //! If you are looking for small universal binary (de)serializer that works with
 //! serde look at [bincode].
@@ -29,16 +29,14 @@
 //! assert_eq!(test, test_from_b);
 //! ```
 //!
-//! There can be also situation when you ~want~ are forced to work with mixed endian in one struct.
-//! We aiming to
+//! There can be also situation when you are forced to work with mixed endian in one struct.
 //! ```rust
 //! use endian_serde::{EndianSize, MixedEndianSerialize};
-//! // even if you use only derive MixedEndianSerialize you also need used serialized tratis in
-//! // scope
+//! // even if you use only derive MixedEndianSerialize you also need used traits in scope.
 //! use endian_serde::{LittleEndianSerialize, BigEndianSerialize}; // for #[endian = "le/be"]
 //!
 //! #[derive(EndianSize, MixedEndianSerialize)]
-//! // You work with very old system and there are mixed endian
+//! // You work with very old system and there are mixed endianness
 //! // There will be only one format "le" or "little" in next minor version.
 //! struct Request {
 //!   #[endian = "le"]
@@ -60,11 +58,11 @@
 //!
 //! ```
 //!
-//! Why another crate to handle endian?
-//! In my opinion any that currently exist do it clean. And the second reason I want to learn how
-//! to create derive crate.
+//! ### Why another crate to handle endian?
+//! * learn how to create custom derives
+//! * make a cleaner API
 //!
-//! There are few other crates that deal with endian:
+//! ### There are few other crates that deal with endian:
 //! * [byteorder] -  Library for reading/writing numbers in big-endian and little-endian.
 //! * [bytes] - Buf and BufMut traits have methods to put and get primitives in wanted endian.
 //! * [simple_endian] - Instead of provide functions that converts - create types that store
@@ -77,22 +75,23 @@
 //! [bytes]:https://crates.io/crates/bytes
 //! [simple_endian]:https://crates.io/crates/simple_endian
 //! [struct_deser]:https://crates.io/crates/struct_deser
+//! [no_std]:https://rust-embedded.github.io/book/intro/no-std.html
 
 #![no_std]
 #[cfg(feature = "endian_serde_derive")]
 pub use endian_serde_derive::*;
 
-/// Represent type that can be serialized as little endian bytes.
+/// Serialized as little endian bytes.
 pub trait LittleEndianSerialize: EndianSize {
     fn serialize_as_le_bytes(&self, bytes: &mut [u8]);
 }
 
-/// Represent type that can be serialized as big endian bytes.
+/// Serialized as big endian bytes.
 pub trait BigEndianSerialize: EndianSize {
     fn serialize_as_be_bytes(&self, bytes: &mut [u8]);
 }
 
-/// Represent type that is serialized using mixed endian bytes.
+/// Serialize using mixed endian bytes.
 ///
 /// # Note
 /// If you only use big/little endian consider use [BigEndianSerialize](BigEndianSerialize) / [LittleEndianSerialize](LittleEndianSerialize) traits.
@@ -100,17 +99,17 @@ pub trait MixedEndianSerialize: EndianSize {
     fn serialize_as_me_bytes(&self, bytes: &mut [u8]);
 }
 
-/// Represent type that can be deserialize from bytes stored as little endian.
+/// Deserialize from bytes stored as little endian.
 pub trait LittleEndianDeserialize: EndianSize {
     fn deserialize_from_le_bytes(bytes: &[u8]) -> Self;
 }
 
-/// Represent type that can be deserialize from bytes stored as big endian.
+/// Deserialize from bytes stored as big endian.
 pub trait BigEndianDeserialize: EndianSize {
     fn deserialize_from_be_bytes(bytes: &[u8]) -> Self;
 }
 
-/// Represent type that is deserialize from bytes stored as mixed endian.
+/// Deserialize from bytes stored as mixed endian.
 ///
 /// # Note
 /// If you only use big/little endian consider use [BigEndianDeserialize](BigEndianDeserialize) / [LittleEndianDeserialize](LittleEndianDeserialize) traits.
@@ -123,8 +122,8 @@ pub trait EndianSize {
     const BYTES_LEN: usize;
 }
 
-macro_rules! impl_serialize_for_primitives {
-    ($type:ty, $byte_len:expr, $le_function:ident, $be_function:ident) => {
+macro_rules! impl_serde_for_primitives {
+    ($type:ty, $byte_len:expr) => {
         impl EndianSize for $type {
             const BYTES_LEN: usize = $byte_len;
         }
@@ -140,20 +139,7 @@ macro_rules! impl_serialize_for_primitives {
                 bytes.copy_from_slice(&(self.to_be_bytes()))
             }
         }
-    };
-}
 
-impl_serialize_for_primitives!(u16, 2, put_u16_le, put_u16);
-impl_serialize_for_primitives!(i16, 2, put_i16_le, put_i16);
-impl_serialize_for_primitives!(u32, 4, put_u32_le, put_u32);
-impl_serialize_for_primitives!(i32, 4, put_i32_le, put_i32);
-impl_serialize_for_primitives!(u64, 8, put_u64_le, put_u64);
-impl_serialize_for_primitives!(i64, 8, put_i64_le, put_i64);
-impl_serialize_for_primitives!(u128, 16, put_u128_le, put_u128);
-impl_serialize_for_primitives!(i128, 16, put_i128_le, put_i128);
-
-macro_rules! impl_deserialize_for_primitives {
-    ($type:ty, $byte_len:expr, $le_function:ident, $be_function:ident) => {
         impl LittleEndianDeserialize for $type {
             fn deserialize_from_le_bytes(bytes: &[u8]) -> Self {
                 let mut arr = [0; $byte_len];
@@ -172,14 +158,97 @@ macro_rules! impl_deserialize_for_primitives {
     };
 }
 
-impl_deserialize_for_primitives!(u16, 2, put_u16_le, put_u16);
-impl_deserialize_for_primitives!(i16, 2, put_i16_le, put_i16);
-impl_deserialize_for_primitives!(u32, 4, put_u32_le, put_u32);
-impl_deserialize_for_primitives!(i32, 4, put_i32_le, put_i32);
-impl_deserialize_for_primitives!(u64, 8, put_u64_le, put_u64);
-impl_deserialize_for_primitives!(i64, 8, put_i64_le, put_i64);
-impl_deserialize_for_primitives!(u128, 16, put_u128_le, put_u128);
-impl_deserialize_for_primitives!(i128, 16, put_i128_le, put_i128);
+impl_serde_for_primitives!(u16, 2);
+impl_serde_for_primitives!(i16, 2);
+impl_serde_for_primitives!(u32, 4);
+impl_serde_for_primitives!(i32, 4);
+impl_serde_for_primitives!(u64, 8);
+impl_serde_for_primitives!(i64, 8);
+impl_serde_for_primitives!(u128, 16);
+impl_serde_for_primitives!(i128, 16);
+
+macro_rules! impl_serde_for_array {
+    ($type:ty, $size:expr) => {
+        impl EndianSize for $type {
+            const BYTES_LEN: usize = $size;
+        }
+
+        impl BigEndianSerialize for $type {
+            fn serialize_as_be_bytes(&self, bytes: &mut [u8]) {
+                bytes.copy_from_slice(self);
+            }
+        }
+
+        impl LittleEndianSerialize for $type {
+            fn serialize_as_le_bytes(&self, bytes: &mut [u8]) {
+                bytes.copy_from_slice(self);
+            }
+        }
+
+        impl MixedEndianSerialize for $type {
+            fn serialize_as_me_bytes(&self, bytes: &mut [u8]) {
+                bytes.copy_from_slice(self);
+            }
+        }
+
+        impl BigEndianDeserialize for $type {
+            fn deserialize_from_be_bytes(bytes: &[u8]) -> Self {
+                let mut arr = [0; Self::BYTES_LEN];
+                arr.copy_from_slice(bytes);
+                arr
+            }
+        }
+
+        impl LittleEndianDeserialize for $type {
+            fn deserialize_from_le_bytes(bytes: &[u8]) -> Self {
+                let mut arr = [0; Self::BYTES_LEN];
+                arr.copy_from_slice(bytes);
+                arr
+            }
+        }
+
+        impl MixedEndianDeserialize for $type {
+            fn deserialize_from_me_bytes(bytes: &[u8]) -> Self {
+                let mut arr = [0; Self::BYTES_LEN];
+                arr.copy_from_slice(bytes);
+                arr
+            }
+        }
+    };
+}
+
+impl_serde_for_array!([u8; 1], 1);
+impl_serde_for_array!([u8; 2], 2);
+impl_serde_for_array!([u8; 3], 3);
+impl_serde_for_array!([u8; 4], 4);
+impl_serde_for_array!([u8; 5], 5);
+impl_serde_for_array!([u8; 6], 6);
+impl_serde_for_array!([u8; 7], 7);
+impl_serde_for_array!([u8; 8], 8);
+impl_serde_for_array!([u8; 9], 9);
+impl_serde_for_array!([u8; 10], 10);
+impl_serde_for_array!([u8; 11], 11);
+impl_serde_for_array!([u8; 12], 12);
+impl_serde_for_array!([u8; 13], 13);
+impl_serde_for_array!([u8; 14], 14);
+impl_serde_for_array!([u8; 15], 15);
+impl_serde_for_array!([u8; 16], 16);
+impl_serde_for_array!([u8; 17], 17);
+impl_serde_for_array!([u8; 18], 18);
+impl_serde_for_array!([u8; 19], 19);
+impl_serde_for_array!([u8; 20], 20);
+impl_serde_for_array!([u8; 21], 21);
+impl_serde_for_array!([u8; 22], 22);
+impl_serde_for_array!([u8; 23], 23);
+impl_serde_for_array!([u8; 24], 24);
+impl_serde_for_array!([u8; 25], 25);
+impl_serde_for_array!([u8; 26], 26);
+impl_serde_for_array!([u8; 27], 27);
+impl_serde_for_array!([u8; 28], 28);
+impl_serde_for_array!([u8; 29], 29);
+impl_serde_for_array!([u8; 30], 30);
+impl_serde_for_array!([u8; 31], 31);
+impl_serde_for_array!([u8; 32], 32);
 
 #[cfg(test)]
 mod tests {
@@ -255,6 +324,7 @@ mod tests {
         struct Example {
             #[endian = "be"]
             a: u16,
+            b: [u8; 32],
         }
 
         let t = Example::default();
