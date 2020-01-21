@@ -158,6 +158,23 @@ macro_rules! impl_serde_for_primitives {
     };
 }
 
+impl_serde_for_primitives!(u8, 1);
+impl_serde_for_primitives!(i8, 1);
+
+impl MixedEndianSerialize for u8 {
+    fn serialize_as_me_bytes(&self, bytes: &mut [u8]) {
+        bytes.copy_from_slice(&(self.to_be_bytes()));
+    }
+}
+
+impl MixedEndianDeserialize for u8 {
+    fn deserialize_from_me_bytes(bytes: &[u8]) -> Self {
+        let mut arr = [0; 1];
+        arr.copy_from_slice(bytes);
+        Self::from_le_bytes(arr)
+    }
+}
+
 impl_serde_for_primitives!(u16, 2);
 impl_serde_for_primitives!(i16, 2);
 impl_serde_for_primitives!(u32, 4);
