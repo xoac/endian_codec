@@ -1,19 +1,19 @@
-//! This crate is to help serialize types as bytes and deserialize from bytes with special
+//! This crate helps serialize types as bytes and deserialize from bytes with a special
 //! byte order. This crate can be used in [no_std] environment and has no external dependencies.
 //!
-//! If you are looking for small universal binary (de)serializer that works with
-//! serde look at [bincode].
+//! If you are looking for a small universal binary (de)serializer that works with
+//! serde, look at [bincode].
 //!
-//! What this crate provide:
-//! * General traits that in clean way adding endian conversions.
+//! Main features:
+//! * A clean way to convert structures to endians and back
 //! * Derive
 //! * no_std and no external dependencies
 //!
 //! ## Examples
 //! ```rust
 //! use endian_codec::{PackedSize, EncodeLE, DecodeLE};
-//! // If you look at this structure you know without documentation it works with little endian
-//! // notation
+//! // If you look at this structure without checking the documentation, you know it works with  
+//! // little-endian notation
 //! #[derive(Debug, PartialEq, Eq, PackedSize, EncodeLE, DecodeLE)]
 //! struct Version {
 //!   major: u16,
@@ -23,21 +23,21 @@
 //!
 //! let mut buf = [0; Version::PACKED_LEN]; // From PackedSize
 //! let test = Version { major: 0, minor: 21, patch: 37 };
-//! // if you work with big and little endian you will not mix them accidentally
+//! // if you work with big- and little-endians, you will not mix them accidentally
 //! test.encode_as_le_bytes(&mut buf);
 //! let test_from_b = Version::decode_from_le_bytes(&buf);
 //! assert_eq!(test, test_from_b);
 //! ```
 //!
-//! There can be also situation when you are forced to work with mixed endian in one struct.
+//! There can be also a situation when you are forced to work with mixed-endians in one struct.
 //! ```rust
 //! use endian_codec::{PackedSize, EncodeME};
-//! // even if you use only derive EncodeME you also need used traits in scope.
+//! // even if you only use derive EncodeME, you also need to have required traits in the scope.
 //! use endian_codec::{EncodeLE, EncodeBE}; // for #[endian = "le/be"]
 //!
 //! #[derive(PackedSize, EncodeME)]
-//! // You work with very old system and there are mixed endianness
-//! // There will be only one format "le" or "little" in next minor version.
+//! // You work with a very old system and there are mixed-endians
+//! // There will be only one format "le" or "little" in the next minor version.
 //! struct Request {
 //!   #[endian = "le"]
 //!   cmd: u16,
@@ -53,22 +53,22 @@
 //!   value: 74,
 //!   timestamp: 0xFFFF_FFFF_0000_0000,
 //! };
-//! // here we see me (mixed endian) just look on struct definition for deatels
+//! // here we see me (mixed-endian), just look at the struct definition for details
 //! req.encode_as_me_bytes(&mut buf);
 //!
 //! ```
 //!
-//! ### Why another crate to handle endian?
-//! * easily byteorder-encoding structs with multiple fields in a consistent encoding
-//! * learn how to create custom derives
-//! * make a cleaner API
+//! ### Why another crate to handle endians?
+//! * Easy byteorder-encoding structs with multiple fields and consistent encoding
+//! * Learning how to create custom derives
+//! * Making a cleaner API
 //!
-//! ### There are few other crates that deal with endian:
+//! ### There are a few other crates that deal with endians:
 //! * [byteorder] -  Library for reading/writing numbers in big-endian and little-endian.
-//! * [bytes] - Buf and BufMut traits have methods to put and get primitives in wanted endian.
-//! * [simple_endian] - Instead of provide functions that converts - create types that store
-//! variables in wanted endian.
-//! * [struct_deser] - Inspiration for this crate - but in more clean and rusty way.
+//! * [bytes] - Buf and BufMut traits that have methods to put and get primitives in the desired endian format.
+//! * [simple_endian] - Instead of providing functions that convert - create types that store
+//! variables in the desired endian format.
+//! * [struct_deser] - Inspiration for this crate - but in a more clean and rusty way.
 //!
 //!
 //! [bincode]:https://crates.io/crates/bincode
@@ -82,82 +82,82 @@
 #[cfg(feature = "endian_codec_derive")]
 pub use endian_codec_derive::*;
 
-/// Encoded as little endian bytes.
+/// Encoded as little-endian bytes.
 pub trait EncodeLE: PackedSize {
-    /// Borrow self and packed it into bytes using little-endian representation.
+    /// Borrow `self` and pack into `bytes` using little-endian representation.
     ///
     /// # Panics
+    /// Panic if [PackedSize](PackedSize) represents a different size than `bytes` slice.
     ///
-    /// Panic if [PackedSize](PackedSize) represent different size than bytes slice.
     fn encode_as_le_bytes(&self, bytes: &mut [u8]);
 }
 
-/// Encoded as big endian bytes.
+/// Encoded as big-endian bytes.
 pub trait EncodeBE: PackedSize {
-    /// Borrow self and packed it into bytes using big-endian representation.
+    /// Borrow `self` and pack into `bytes` using big-endian representation.
     ///
     /// # Panics
     ///
-    /// Panic if [PackedSize](PackedSize) represent different size than bytes slice.
+    /// Panic if [PackedSize](PackedSize) represents a different size than `bytes` slice.
     fn encode_as_be_bytes(&self, bytes: &mut [u8]);
 }
 
-/// Encode using mixed endian bytes.
+/// Encode using mixed-endian bytes.
 ///
 /// # Note
-/// If you only use big/little endian consider use [EncodeBE](EncodeBE) / [EncodeLE](EncodeLE) traits.
+/// If you only use big-/little-endians, consider using [EncodeBE](EncodeBE) / [EncodeLE](EncodeLE) traits instead.
 pub trait EncodeME: PackedSize {
-    /// Borrow self and packed it into bytes using mixed(custom)-endian representation.
+    /// Borrow `self` and pack into `bytes` using mixed(custom)-endian representation.
     ///
     /// # Panics
     ///
-    /// Panic if [PackedSize](PackedSize) represent different size than bytes slice.
+    /// Panic if [PackedSize](PackedSize) represents a different size than `bytes` slice.
     fn encode_as_me_bytes(&self, bytes: &mut [u8]);
 }
 
-/// Decode from bytes stored as little endian.
+/// Decode from bytes stored as a little-endian.
 pub trait DecodeLE: PackedSize {
-    /// Read `bytes` slice like packed little-endian bytes and create `Self` from them
+    /// Read `bytes` slice packed as little-endian bytes and create `Self` from them
     ///
     /// # Panics
     ///
-    /// Panic if [PackedSize](PackedSize) represent different size than bytes slice.
+    /// Panic if [PackedSize](PackedSize) represents a different size than `bytes` slice.
     fn decode_from_le_bytes(bytes: &[u8]) -> Self;
 }
 
-/// Decode from bytes stored as big endian.
+/// Decode from bytes stored as a big-endian.
 pub trait DecodeBE: PackedSize {
-    /// Read `bytes` slice like packed big-endian bytes and create `Self` from them
+    /// Read `bytes` slice packed as big-endian bytes and create `Self` from them
     ///
     /// # Panics
     ///
-    /// Panic if [PackedSize](PackedSize) represent different size than bytes slice.
+    /// Panic if [PackedSize](PackedSize) represents a different size than `bytes` slice.
     fn decode_from_be_bytes(bytes: &[u8]) -> Self;
 }
 
-/// Decode from bytes stored as mixed endian.
+/// Decode from bytes stored as a mixed-endian.
 ///
 /// # Note
-/// If you only use big/little endian consider use [DecodeBE](DecodeBE) / [DecodeLE](DecodeLE) traits.
+/// If you only use big-/little-endians, consider using [DecodeBE](DecodeBE) / [DecodeLE](DecodeLE) traits instead.
 pub trait DecodeME: PackedSize {
-    /// Read `bytes` slice like packed mixed(custom)-endian bytes and create `Self` from them
+    /// Read `bytes` slice packed as mixed(custom)-endian bytes and create `Self` from them
     ///
     /// # Panics
     ///
-    /// Panic if [PackedSize](PackedSize) represent different size than bytes slice.
+    /// Panic if [PackedSize](PackedSize) represents a different size than `bytes` slice.
     fn decode_from_me_bytes(bytes: &[u8]) -> Self;
 }
 
-/// Represent size of struct as packed bytes.
+/// Represents size of a struct as packed bytes.
 ///
 /// At this moment all settings with [repr](https://doc.rust-lang.org/nomicon/other-reprs.html)
 /// attribute are ignored.
 ///
-/// In other words if struct is marked `repr(packed)` attribute `std::mem::sizeof<T>()` should return the
+/// In other words if struct is marked as `repr(packed)` attribute, `std::mem::sizeof<T>()` should return the
 /// same value as <T as PackedSize>::PACKED_LEN.
 ///
 /// ```
-/// // on 64bit machine size of struct A can by 16 bytes to make it more optimized for speed.
+/// // On a 64-bit machine, the size of struct A can be 16 bytes to make it more optimized for speed.
 /// // but `PACKED_LEN` must be set to 12 bytes.
 /// struct A {
 ///   p: i32,
