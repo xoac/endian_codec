@@ -9,7 +9,7 @@ documentation="https://docs.rs/endian_codec"
 repository="https://github.com/xoac/endian_codec"
 keywords = ["no_std", "endian", "bytes"]
 categories = ["no-std", "parsing"]
-licence = "Apache-2.0 OR MIT"
+license = "Apache-2.0 OR MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

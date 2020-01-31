@@ -3,7 +3,12 @@ name = "endian_codec_derive"
 version = "0.1.0"
 authors = ["Sylwester Rąpała <sylwesterrapala@outlook.com>"]
 edition = "2018"
-publish = false
+
+license = "MIT OR Apache-2.0"
+description = "Macros implementation for endian_codec crate"
+repository = "https://github.com/xoac/endian_codec"
+categories = ["no-std", "parsing"]
+keywords = ["derive", "endian", "bytes"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
