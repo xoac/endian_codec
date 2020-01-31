@@ -82,7 +82,7 @@
 #[cfg(feature = "endian_codec_derive")]
 pub use endian_codec_derive::*;
 
-/// Serialized as little endian bytes.
+/// Encoded as little endian bytes.
 pub trait EncodeLE: PackedSize {
     /// Borrow self and packed it into bytes using little-endian representation.
     ///
@@ -92,7 +92,7 @@ pub trait EncodeLE: PackedSize {
     fn encode_as_le_bytes(&self, bytes: &mut [u8]);
 }
 
-/// Serialized as big endian bytes.
+/// Encoded as big endian bytes.
 pub trait EncodeBE: PackedSize {
     /// Borrow self and packed it into bytes using big-endian representation.
     ///
@@ -102,7 +102,7 @@ pub trait EncodeBE: PackedSize {
     fn encode_as_be_bytes(&self, bytes: &mut [u8]);
 }
 
-/// Serialize using mixed endian bytes.
+/// Encode using mixed endian bytes.
 ///
 /// # Note
 /// If you only use big/little endian consider use [EncodeBE](EncodeBE) / [EncodeLE](EncodeLE) traits.
@@ -148,7 +148,23 @@ pub trait DecodeME: PackedSize {
     fn decode_from_me_bytes(bytes: &[u8]) -> Self;
 }
 
-/// Represent size of struct when is serialized as bytes.
+/// Represent size of struct as packed bytes.
+///
+/// At this moment all settings with [repr](https://doc.rust-lang.org/nomicon/other-reprs.html)
+/// attribute are ignored.
+///
+/// In other words if struct is marked `repr(packed)` attribute `std::mem::sizeof<T>()` should return the
+/// same value as <T as PackedSize>::PACKED_LEN.
+///
+/// ```
+/// // on 64bit machine size of struct A can by 16 bytes to make it more optimized for speed.
+/// // but `PACKED_LEN` must be set to 12 bytes.
+/// struct A {
+///   p: i32,
+///   v: i64,
+/// }
+/// ```
+///
 pub trait PackedSize {
     const PACKED_LEN: usize;
 }
