@@ -31,7 +31,7 @@ pub fn derive_endian_size(input: proc_macro::TokenStream) -> proc_macro::TokenSt
     // Used in the quasi-quotation below as `#name`.
     let name = input.ident;
 
-    // Add a bound `T: LittleEndianSerialize` to every type parameter T.
+    // Add a bound `T: EncodeLE` to every type parameter T.
     let generics = add_trait_bounds(input.generics, parse_quote!(EndianSize));
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
@@ -91,32 +91,32 @@ fn bytes_size(data: &Data) -> TokenStream {
     }
 }
 
-#[proc_macro_derive(LittleEndianSerialize)]
+#[proc_macro_derive(EncodeLE)]
 pub fn derive_endian_ser_bytes(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     derive_endian_impl(input, Endian::Little, SerDe::Serialize)
 }
 
-#[proc_macro_derive(BigEndianSerialize)]
+#[proc_macro_derive(EncodeBE)]
 pub fn derive_endian_de_bytes(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     derive_endian_impl(input, Endian::Big, SerDe::Serialize)
 }
 
-#[proc_macro_derive(MixedEndianSerialize, attributes(endian))]
+#[proc_macro_derive(EncodeME, attributes(endian))]
 pub fn derive_endian_bytes(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     derive_endian_impl(input, Endian::Mixed, SerDe::Serialize)
 }
 
-#[proc_macro_derive(LittleEndianDeserialize)]
+#[proc_macro_derive(DecodeLE)]
 pub fn derive_endian_le_de_bytes(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     derive_endian_impl(input, Endian::Little, SerDe::Deserialize)
 }
 
-#[proc_macro_derive(BigEndianDeserialize)]
+#[proc_macro_derive(DecodeBE)]
 pub fn derive_endian_be_de_bytes(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     derive_endian_impl(input, Endian::Big, SerDe::Deserialize)
 }
 
-#[proc_macro_derive(MixedEndianDeserialize, attributes(endian))]
+#[proc_macro_derive(DecodeME, attributes(endian))]
 pub fn derive_endian_me_de_bytes(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     derive_endian_impl(input, Endian::Mixed, SerDe::Deserialize)
 }
@@ -135,17 +135,15 @@ fn derive_endian_impl(
     // Add a bound `T: (Big/Little/Mixed)Endian(Serialize/Deserialize)` to every type parameter T.
     let generics = match serde {
         SerDe::Serialize => match endian {
-            Endian::Little => add_trait_bounds(input.generics, parse_quote!(LittleEndianSerialize)),
-            Endian::Big => add_trait_bounds(input.generics, parse_quote!(BigEndianSerialize)),
-            Endian::Mixed => add_trait_bounds(input.generics, parse_quote!(MixedEndianSerialize)),
+            Endian::Little => add_trait_bounds(input.generics, parse_quote!(EncodeLE)),
+            Endian::Big => add_trait_bounds(input.generics, parse_quote!(EncodeBE)),
+            Endian::Mixed => add_trait_bounds(input.generics, parse_quote!(EncodeME)),
             Endian::Native => unimplemented!(),
         },
         SerDe::Deserialize => match endian {
-            Endian::Little => {
-                add_trait_bounds(input.generics, parse_quote!(LittleEndianDeserialize))
-            }
-            Endian::Big => add_trait_bounds(input.generics, parse_quote!(BigEndianDeserialize)),
-            Endian::Mixed => add_trait_bounds(input.generics, parse_quote!(MixedEndianDeserialize)),
+            Endian::Little => add_trait_bounds(input.generics, parse_quote!(DecodeLE)),
+            Endian::Big => add_trait_bounds(input.generics, parse_quote!(DecodeBE)),
+            Endian::Mixed => add_trait_bounds(input.generics, parse_quote!(DecodeME)),
             Endian::Native => unimplemented!(),
         },
     };
@@ -159,22 +157,22 @@ fn derive_endian_impl(
     let expanded = match serde {
         SerDe::Serialize => match endian {
             Endian::Little => quote! {
-                impl #impl_generics LittleEndianSerialize for #name #ty_generics #where_clause {
-                     fn serialize_as_le_bytes(&self, bytes: &mut [u8]) {
+                impl #impl_generics EncodeLE for #name #ty_generics #where_clause {
+                     fn encode_as_le_bytes(&self, bytes: &mut [u8]) {
                        #body
                      }
                 }
             },
             Endian::Big => quote! {
-                impl #impl_generics BigEndianSerialize for #name #ty_generics #where_clause {
-                     fn serialize_as_be_bytes(&self, bytes: &mut [u8]) {
+                impl #impl_generics EncodeBE for #name #ty_generics #where_clause {
+                     fn encode_as_be_bytes(&self, bytes: &mut [u8]) {
                        #body
                      }
                 }
             },
             Endian::Mixed => quote! {
-                impl #impl_generics MixedEndianSerialize for #name #ty_generics #where_clause {
-                     fn serialize_as_me_bytes(&self, bytes: &mut [u8]) {
+                impl #impl_generics EncodeME for #name #ty_generics #where_clause {
+                     fn encode_as_me_bytes(&self, bytes: &mut [u8]) {
                        #body
                      }
                 }
@@ -183,22 +181,22 @@ fn derive_endian_impl(
         },
         SerDe::Deserialize => match endian {
             Endian::Little => quote! {
-                impl #impl_generics LittleEndianDeserialize for #name #ty_generics #where_clause {
-                     fn deserialize_from_le_bytes(bytes: &[u8]) -> Self {
+                impl #impl_generics DecodeLE for #name #ty_generics #where_clause {
+                     fn decode_from_le_bytes(bytes: &[u8]) -> Self {
                        Self { #body }
                      }
                 }
             },
             Endian::Big => quote! {
-                impl #impl_generics BigEndianDeserialize for #name #ty_generics #where_clause {
-                     fn deserialize_from_be_bytes(bytes: &[u8]) -> Self {
+                impl #impl_generics DecodeBE for #name #ty_generics #where_clause {
+                     fn decode_from_be_bytes(bytes: &[u8]) -> Self {
                        Self { #body }
                      }
                 }
             },
             Endian::Mixed => quote! {
-                impl #impl_generics MixedEndianDeserialize for #name #ty_generics #where_clause {
-                     fn deserialize_from_me_bytes(bytes: &[u8]) -> Self {
+                impl #impl_generics DecodeME for #name #ty_generics #where_clause {
+                     fn decode_from_me_bytes(bytes: &[u8]) -> Self {
                        Self { #body }
                      }
                 }
@@ -226,11 +224,11 @@ fn serde_fields(fields: &Punctuated<Field, Comma>, endian: Endian, serde: SerDe)
             SerDe::Serialize => match endian {
                 Endian::Little => recurse.push(quote_spanned! {field.span()=>
                     debug_assert_eq!(#struct_size, #bytes_slice.len());
-                    LittleEndianSerialize::serialize_as_le_bytes(&self.#name, &mut #bytes_slice);
+                    EncodeLE::encode_as_le_bytes(&self.#name, &mut #bytes_slice);
                 }),
                 Endian::Big => recurse.push(quote_spanned! {field.span()=>
                     debug_assert_eq!(#struct_size, #bytes_slice.len());
-                    BigEndianSerialize::serialize_as_be_bytes(&self.#name, &mut #bytes_slice);
+                    EncodeBE::encode_as_be_bytes(&self.#name, &mut #bytes_slice);
                 }),
                 Endian::Mixed => {
                     let filed_endian = attr::endian_from_attribute(&field.attrs);
@@ -238,16 +236,16 @@ fn serde_fields(fields: &Punctuated<Field, Comma>, endian: Endian, serde: SerDe)
                     let r = match filed_endian {
                         Some(Endian::Little) => quote_spanned! {field.span()=>
                             debug_assert_eq!(#struct_size, #bytes_slice.len());
-                            LittleEndianSerialize::serialize_as_le_bytes(&self.#name, &mut #bytes_slice);
+                            EncodeLE::encode_as_le_bytes(&self.#name, &mut #bytes_slice);
                         },
                         Some(Endian::Big) => quote_spanned! {field.span()=>
                             debug_assert_eq!(#struct_size, #bytes_slice.len());
-                            BigEndianSerialize::serialize_as_be_bytes(&self.#name, &mut #bytes_slice);
+                            EncodeBE::encode_as_be_bytes(&self.#name, &mut #bytes_slice);
                         },
                         Some(Endian::Mixed) | Some(Endian::Native) => unimplemented!(),
                         None => quote_spanned! {field.span()=>
                           debug_assert_eq!(#struct_size, #bytes_slice.len());
-                          MixedEndianSerialize::serialize_as_me_bytes(&self.#name, &mut #bytes_slice);
+                          EncodeME::encode_as_me_bytes(&self.#name, &mut #bytes_slice);
                         },
                     };
                     recurse.push(r)
@@ -256,24 +254,24 @@ fn serde_fields(fields: &Punctuated<Field, Comma>, endian: Endian, serde: SerDe)
             },
             SerDe::Deserialize => match endian {
                 Endian::Little => recurse.push(quote_spanned! {field.span()=>
-                    #name: LittleEndianDeserialize::deserialize_from_le_bytes(& #bytes_slice),
+                    #name: DecodeLE::decode_from_le_bytes(& #bytes_slice),
                 }),
                 Endian::Big => recurse.push(quote_spanned! {field.span()=>
-                    #name: BigEndianDeserialize::deserialize_from_be_bytes(& #bytes_slice),
+                    #name: DecodeBE::decode_from_be_bytes(& #bytes_slice),
                 }),
                 Endian::Mixed => {
                     let filed_endian = attr::endian_from_attribute(&field.attrs);
 
                     let r = match filed_endian {
                         Some(Endian::Little) => quote_spanned! {field.span()=>
-                            #name: LittleEndianDeserialize::deserialize_from_le_bytes(& #bytes_slice),
+                            #name: DecodeLE::decode_from_le_bytes(& #bytes_slice),
                         },
                         Some(Endian::Big) => quote_spanned! {field.span()=>
-                            #name: BigEndianDeserialize::deserialize_from_be_bytes(& #bytes_slice),
+                            #name: DecodeBE::decode_from_be_bytes(& #bytes_slice),
                         },
                         Some(Endian::Mixed) | Some(Endian::Native) => unimplemented!(),
                         None => quote_spanned! {field.span()=>
-                          #name: MixedEndianDeserialize::deserialize_from_me_bytes(& #bytes_slice),
+                          #name: DecodeME::decode_from_me_bytes(& #bytes_slice),
                         },
                     };
                     recurse.push(r)

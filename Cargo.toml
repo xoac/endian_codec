@@ -1,5 +1,6 @@
 [package]
-name = "endian-serde"
+name = "endian_codec"
+description = "(De/En)code rust types as packed bytes with specific order"
 version = "0.1.0"
 authors = ["Sylwester Rąpała <sylwesterrapala@outlook.com>"]
 edition = "2018"
@@ -7,9 +8,9 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-endian_serde_derive = { path = "endian_serde_derive", optional = true }
+endian_codec_derive = { path = "endian_codec_derive", optional = true }
 
 [features]
 default = ["derive"]
 
-derive = ["endian_serde_derive"]
+derive = ["endian_codec_derive"]

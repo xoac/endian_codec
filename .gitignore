@@ -2,5 +2,5 @@
 **/*.rs.bk
 Cargo.lock
 
-/endian_serde_derive/target
-/endian_serde_derive/Cargo.lock
+/endian_codec_derive/target
+/endian_codec_derive/Cargo.lock

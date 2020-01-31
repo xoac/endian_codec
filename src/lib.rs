@@ -11,10 +11,10 @@
 //!
 //! ## Examples
 //! ```rust
-//! use endian_serde::{EndianSize, LittleEndianSerialize, LittleEndianDeserialize};
+//! use endian_codec::{EndianSize, EncodeLE, DecodeLE};
 //! // If you look at this structure you know without documentation it works with little endian
 //! // notation
-//! #[derive(Debug, PartialEq, Eq, EndianSize, LittleEndianSerialize, LittleEndianDeserialize)]
+//! #[derive(Debug, PartialEq, Eq, EndianSize, EncodeLE, DecodeLE)]
 //! struct Version {
 //!   major: u16,
 //!   minor: u16,
@@ -24,18 +24,18 @@
 //! let mut buf = [0; Version::BYTES_LEN]; // From EndianSize
 //! let test = Version { major: 0, minor: 21, patch: 37 };
 //! // if you work with big and little endian you will not mix them accidentally
-//! test.serialize_as_le_bytes(&mut buf);
-//! let test_from_b = Version::deserialize_from_le_bytes(&buf);
+//! test.encode_as_le_bytes(&mut buf);
+//! let test_from_b = Version::decode_from_le_bytes(&buf);
 //! assert_eq!(test, test_from_b);
 //! ```
 //!
 //! There can be also situation when you are forced to work with mixed endian in one struct.
 //! ```rust
-//! use endian_serde::{EndianSize, MixedEndianSerialize};
-//! // even if you use only derive MixedEndianSerialize you also need used traits in scope.
-//! use endian_serde::{LittleEndianSerialize, BigEndianSerialize}; // for #[endian = "le/be"]
+//! use endian_codec::{EndianSize, EncodeME};
+//! // even if you use only derive EncodeME you also need used traits in scope.
+//! use endian_codec::{EncodeLE, EncodeBE}; // for #[endian = "le/be"]
 //!
-//! #[derive(EndianSize, MixedEndianSerialize)]
+//! #[derive(EndianSize, EncodeME)]
 //! // You work with very old system and there are mixed endianness
 //! // There will be only one format "le" or "little" in next minor version.
 //! struct Request {
@@ -54,11 +54,12 @@
 //!   timestamp: 0xFFFF_FFFF_0000_0000,
 //! };
 //! // here we see me (mixed endian) just look on struct definition for deatels
-//! req.serialize_as_me_bytes(&mut buf);
+//! req.encode_as_me_bytes(&mut buf);
 //!
 //! ```
 //!
 //! ### Why another crate to handle endian?
+//! * easily byteorder-encoding structs with multiple fields in a consistent encoding
 //! * learn how to create custom derives
 //! * make a cleaner API
 //!
@@ -78,43 +79,43 @@
 //! [no_std]:https://rust-embedded.github.io/book/intro/no-std.html
 
 #![no_std]
-#[cfg(feature = "endian_serde_derive")]
-pub use endian_serde_derive::*;
+#[cfg(feature = "endian_codec_derive")]
+pub use endian_codec_derive::*;
 
 /// Serialized as little endian bytes.
-pub trait LittleEndianSerialize: EndianSize {
-    fn serialize_as_le_bytes(&self, bytes: &mut [u8]);
+pub trait EncodeLE: EndianSize {
+    fn encode_as_le_bytes(&self, bytes: &mut [u8]);
 }
 
 /// Serialized as big endian bytes.
-pub trait BigEndianSerialize: EndianSize {
-    fn serialize_as_be_bytes(&self, bytes: &mut [u8]);
+pub trait EncodeBE: EndianSize {
+    fn encode_as_be_bytes(&self, bytes: &mut [u8]);
 }
 
 /// Serialize using mixed endian bytes.
 ///
 /// # Note
-/// If you only use big/little endian consider use [BigEndianSerialize](BigEndianSerialize) / [LittleEndianSerialize](LittleEndianSerialize) traits.
-pub trait MixedEndianSerialize: EndianSize {
-    fn serialize_as_me_bytes(&self, bytes: &mut [u8]);
+/// If you only use big/little endian consider use [EncodeBE](EncodeBE) / [EncodeLE](EncodeLE) traits.
+pub trait EncodeME: EndianSize {
+    fn encode_as_me_bytes(&self, bytes: &mut [u8]);
 }
 
 /// Deserialize from bytes stored as little endian.
-pub trait LittleEndianDeserialize: EndianSize {
-    fn deserialize_from_le_bytes(bytes: &[u8]) -> Self;
+pub trait DecodeLE: EndianSize {
+    fn decode_from_le_bytes(bytes: &[u8]) -> Self;
 }
 
 /// Deserialize from bytes stored as big endian.
-pub trait BigEndianDeserialize: EndianSize {
-    fn deserialize_from_be_bytes(bytes: &[u8]) -> Self;
+pub trait DecodeBE: EndianSize {
+    fn decode_from_be_bytes(bytes: &[u8]) -> Self;
 }
 
 /// Deserialize from bytes stored as mixed endian.
 ///
 /// # Note
-/// If you only use big/little endian consider use [BigEndianDeserialize](BigEndianDeserialize) / [LittleEndianDeserialize](LittleEndianDeserialize) traits.
-pub trait MixedEndianDeserialize: EndianSize {
-    fn deserialize_from_me_bytes(bytes: &[u8]) -> Self;
+/// If you only use big/little endian consider use [DecodeBE](DecodeBE) / [DecodeLE](DecodeLE) traits.
+pub trait DecodeME: EndianSize {
+    fn decode_from_me_bytes(bytes: &[u8]) -> Self;
 }
 
 /// Represent size of struct when is serialized as bytes.
@@ -128,28 +129,28 @@ macro_rules! impl_serde_for_primitives {
             const BYTES_LEN: usize = $byte_len;
         }
 
-        impl LittleEndianSerialize for $type {
-            fn serialize_as_le_bytes(&self, bytes: &mut [u8]) {
+        impl EncodeLE for $type {
+            fn encode_as_le_bytes(&self, bytes: &mut [u8]) {
                 bytes.copy_from_slice(&(self.to_le_bytes()))
             }
         }
 
-        impl BigEndianSerialize for $type {
-            fn serialize_as_be_bytes(&self, bytes: &mut [u8]) {
+        impl EncodeBE for $type {
+            fn encode_as_be_bytes(&self, bytes: &mut [u8]) {
                 bytes.copy_from_slice(&(self.to_be_bytes()))
             }
         }
 
-        impl LittleEndianDeserialize for $type {
-            fn deserialize_from_le_bytes(bytes: &[u8]) -> Self {
+        impl DecodeLE for $type {
+            fn decode_from_le_bytes(bytes: &[u8]) -> Self {
                 let mut arr = [0; $byte_len];
                 arr.copy_from_slice(&bytes);
                 Self::from_le_bytes(arr)
             }
         }
 
-        impl BigEndianDeserialize for $type {
-            fn deserialize_from_be_bytes(bytes: &[u8]) -> Self {
+        impl DecodeBE for $type {
+            fn decode_from_be_bytes(bytes: &[u8]) -> Self {
                 let mut arr = [0; $byte_len];
                 arr.copy_from_slice(&bytes);
                 Self::from_be_bytes(arr)
@@ -161,14 +162,14 @@ macro_rules! impl_serde_for_primitives {
 impl_serde_for_primitives!(u8, 1);
 impl_serde_for_primitives!(i8, 1);
 
-impl MixedEndianSerialize for u8 {
-    fn serialize_as_me_bytes(&self, bytes: &mut [u8]) {
+impl EncodeME for u8 {
+    fn encode_as_me_bytes(&self, bytes: &mut [u8]) {
         bytes.copy_from_slice(&(self.to_be_bytes()));
     }
 }
 
-impl MixedEndianDeserialize for u8 {
-    fn deserialize_from_me_bytes(bytes: &[u8]) -> Self {
+impl DecodeME for u8 {
+    fn decode_from_me_bytes(bytes: &[u8]) -> Self {
         let mut arr = [0; 1];
         arr.copy_from_slice(bytes);
         Self::from_le_bytes(arr)
@@ -190,42 +191,42 @@ macro_rules! impl_serde_for_array {
             const BYTES_LEN: usize = $size;
         }
 
-        impl BigEndianSerialize for $type {
-            fn serialize_as_be_bytes(&self, bytes: &mut [u8]) {
+        impl EncodeBE for $type {
+            fn encode_as_be_bytes(&self, bytes: &mut [u8]) {
                 bytes.copy_from_slice(self);
             }
         }
 
-        impl LittleEndianSerialize for $type {
-            fn serialize_as_le_bytes(&self, bytes: &mut [u8]) {
+        impl EncodeLE for $type {
+            fn encode_as_le_bytes(&self, bytes: &mut [u8]) {
                 bytes.copy_from_slice(self);
             }
         }
 
-        impl MixedEndianSerialize for $type {
-            fn serialize_as_me_bytes(&self, bytes: &mut [u8]) {
+        impl EncodeME for $type {
+            fn encode_as_me_bytes(&self, bytes: &mut [u8]) {
                 bytes.copy_from_slice(self);
             }
         }
 
-        impl BigEndianDeserialize for $type {
-            fn deserialize_from_be_bytes(bytes: &[u8]) -> Self {
+        impl DecodeBE for $type {
+            fn decode_from_be_bytes(bytes: &[u8]) -> Self {
                 let mut arr = [0; Self::BYTES_LEN];
                 arr.copy_from_slice(bytes);
                 arr
             }
         }
 
-        impl LittleEndianDeserialize for $type {
-            fn deserialize_from_le_bytes(bytes: &[u8]) -> Self {
+        impl DecodeLE for $type {
+            fn decode_from_le_bytes(bytes: &[u8]) -> Self {
                 let mut arr = [0; Self::BYTES_LEN];
                 arr.copy_from_slice(bytes);
                 arr
             }
         }
 
-        impl MixedEndianDeserialize for $type {
-            fn deserialize_from_me_bytes(bytes: &[u8]) -> Self {
+        impl DecodeME for $type {
+            fn decode_from_me_bytes(bytes: &[u8]) -> Self {
                 let mut arr = [0; Self::BYTES_LEN];
                 arr.copy_from_slice(bytes);
                 arr
@@ -293,31 +294,31 @@ mod tests {
 
     #[test]
     fn derive_littlendian_serialize() {
-        #[derive(EndianSize, LittleEndianSerialize)]
+        #[derive(EndianSize, EncodeLE)]
         struct Example {
             a: u16,
         }
 
         let t = Example { a: 5 };
         let mut b = [0; 2];
-        t.serialize_as_le_bytes(&mut b);
+        t.encode_as_le_bytes(&mut b);
     }
 
     #[test]
     fn derive_bigendian_serialize() {
-        #[derive(EndianSize, BigEndianSerialize)]
+        #[derive(EndianSize, EncodeBE)]
         struct Example {
             a: u16,
         }
 
         let t = Example { a: 5 };
         let mut b = [0; 2];
-        t.serialize_as_be_bytes(&mut b);
+        t.encode_as_be_bytes(&mut b);
     }
 
     #[test]
     fn derive_mixed_endian_serialize() {
-        #[derive(EndianSize, MixedEndianSerialize, Default)]
+        #[derive(EndianSize, EncodeME, Default)]
         struct Example {
             #[endian = "le"]
             a: u16,
@@ -331,13 +332,12 @@ mod tests {
 
         let t = Example::default();
         let mut b = [0; 8];
-        t.serialize_as_me_bytes(&mut b);
+        t.encode_as_me_bytes(&mut b);
     }
 
+    #[test]
     fn derive_all_serialize() {
-        #[derive(
-            Default, EndianSize, LittleEndianSerialize, BigEndianSerialize, MixedEndianSerialize,
-        )]
+        #[derive(Default, EndianSize, EncodeLE, EncodeBE, EncodeME)]
         struct Example {
             #[endian = "be"]
             a: u16,
@@ -345,22 +345,16 @@ mod tests {
         }
 
         let t = Example::default();
-        let mut b = [0; 2];
-        t.serialize_as_me_bytes(&mut b);
-        t.serialize_as_be_bytes(&mut b);
-        t.serialize_as_le_bytes(&mut b);
+        let mut b = [0; 34];
+        t.encode_as_me_bytes(&mut b);
+        t.encode_as_be_bytes(&mut b);
+        t.encode_as_le_bytes(&mut b);
     }
 
+    #[test]
     fn derive_all() {
         #[derive(
-            Default,
-            EndianSize,
-            LittleEndianSerialize,
-            BigEndianSerialize,
-            MixedEndianSerialize,
-            LittleEndianDeserialize,
-            BigEndianDeserialize,
-            MixedEndianDeserialize,
+            Default, EndianSize, EncodeLE, EncodeBE, EncodeME, DecodeLE, DecodeBE, DecodeME,
         )]
         struct Example {
             #[endian = "be"]
@@ -369,15 +363,15 @@ mod tests {
 
         let t = Example::default();
         let mut b = [0; 2];
-        t.serialize_as_me_bytes(&mut b);
-        t.serialize_as_be_bytes(&mut b);
-        t.serialize_as_le_bytes(&mut b);
+        t.encode_as_me_bytes(&mut b);
+        t.encode_as_be_bytes(&mut b);
+        t.encode_as_le_bytes(&mut b);
     }
 
     /*
     #[test]
     fn derive_parameters() {
-        #[derive(LittleEndianSerialize)]
+        #[derive(EncodeLE)]
         struct Example<A> {
             a: A,
             #[endian(be)]
