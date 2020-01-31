@@ -18,12 +18,12 @@ enum Endian {
 }
 
 #[derive(Clone, Copy)]
-enum SerDe {
-    Serialize,
-    Deserialize,
+enum Codec {
+    Encode,
+    Decode,
 }
 
-#[proc_macro_derive(EndianSize)]
+#[proc_macro_derive(PackedSize)]
 pub fn derive_endian_size(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree.
     let input = parse_macro_input!(input as DeriveInput);
@@ -32,15 +32,15 @@ pub fn derive_endian_size(input: proc_macro::TokenStream) -> proc_macro::TokenSt
     let name = input.ident;
 
     // Add a bound `T: EncodeLE` to every type parameter T.
-    let generics = add_trait_bounds(input.generics, parse_quote!(EndianSize));
+    let generics = add_trait_bounds(input.generics, parse_quote!(PackedSize));
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
     let body = bytes_size(&input.data);
 
     let expanded = quote! {
         // The generated impl.
-        impl #impl_generics EndianSize for #name #ty_generics #where_clause {
-          const BYTES_LEN: usize = #body;
+        impl #impl_generics PackedSize for #name #ty_generics #where_clause {
+          const PACKED_LEN: usize = #body;
         }
     };
 
@@ -55,11 +55,11 @@ fn bytes_size(data: &Data) -> TokenStream {
                 Fields::Named(ref fields) => {
                     // Expands to an expression like
                     //
-                    //     0 + <self.x as EndianSize>::BYTES_LEN + <self.y as EndianSize>::BYTES_LEN
+                    //     0 + <self.x as PackedSize>::PACKED_LEN + <self.y as PackedSize>::PACKED_LEN
                     let recurse = fields.named.iter().map(|f| {
                         let ty = &f.ty;
                         quote_spanned! {f.span()=>
-                            <#ty as EndianSize>::BYTES_LEN
+                            <#ty as PackedSize>::PACKED_LEN
                         }
                     });
 
@@ -70,11 +70,11 @@ fn bytes_size(data: &Data) -> TokenStream {
                 Fields::Unnamed(ref fields) => {
                     // Expands to an expression like
                     //
-                    //     0 + <self.0 as EndianSize>::BYTES_LEN + <self.1 as EndianSize>::BYTES_LEN
+                    //     0 + <self.0 as PackedSize>::PACKED_LEN + <self.1 as PackedSize>::PACKED_LEN
                     let recurse = fields.unnamed.iter().map(|f| {
                         let ty = &f.ty;
                         quote_spanned! {f.span()=>
-                            <#ty as EndianSize>::BYTES_LEN
+                            <#ty as PackedSize>::PACKED_LEN
                         }
                     });
                     quote! {
@@ -93,38 +93,38 @@ fn bytes_size(data: &Data) -> TokenStream {
 
 #[proc_macro_derive(EncodeLE)]
 pub fn derive_endian_ser_bytes(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    derive_endian_impl(input, Endian::Little, SerDe::Serialize)
+    derive_endian_impl(input, Endian::Little, Codec::Encode)
 }
 
 #[proc_macro_derive(EncodeBE)]
 pub fn derive_endian_de_bytes(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    derive_endian_impl(input, Endian::Big, SerDe::Serialize)
+    derive_endian_impl(input, Endian::Big, Codec::Encode)
 }
 
 #[proc_macro_derive(EncodeME, attributes(endian))]
 pub fn derive_endian_bytes(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    derive_endian_impl(input, Endian::Mixed, SerDe::Serialize)
+    derive_endian_impl(input, Endian::Mixed, Codec::Encode)
 }
 
 #[proc_macro_derive(DecodeLE)]
 pub fn derive_endian_le_de_bytes(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    derive_endian_impl(input, Endian::Little, SerDe::Deserialize)
+    derive_endian_impl(input, Endian::Little, Codec::Decode)
 }
 
 #[proc_macro_derive(DecodeBE)]
 pub fn derive_endian_be_de_bytes(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    derive_endian_impl(input, Endian::Big, SerDe::Deserialize)
+    derive_endian_impl(input, Endian::Big, Codec::Decode)
 }
 
 #[proc_macro_derive(DecodeME, attributes(endian))]
 pub fn derive_endian_me_de_bytes(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    derive_endian_impl(input, Endian::Mixed, SerDe::Deserialize)
+    derive_endian_impl(input, Endian::Mixed, Codec::Decode)
 }
 
 fn derive_endian_impl(
     input: proc_macro::TokenStream,
     endian: Endian,
-    serde: SerDe,
+    serde: Codec,
 ) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree.
     let input = parse_macro_input!(input as DeriveInput);
@@ -132,15 +132,15 @@ fn derive_endian_impl(
     // Used in the quasi-quotation below as `#name`.
     let name = input.ident;
 
-    // Add a bound `T: (Big/Little/Mixed)Endian(Serialize/Deserialize)` to every type parameter T.
+    // Add a bound `T: (Big/Little/Mixed)Endian(Encode/Decode)` to every type parameter T.
     let generics = match serde {
-        SerDe::Serialize => match endian {
+        Codec::Encode => match endian {
             Endian::Little => add_trait_bounds(input.generics, parse_quote!(EncodeLE)),
             Endian::Big => add_trait_bounds(input.generics, parse_quote!(EncodeBE)),
             Endian::Mixed => add_trait_bounds(input.generics, parse_quote!(EncodeME)),
             Endian::Native => unimplemented!(),
         },
-        SerDe::Deserialize => match endian {
+        Codec::Decode => match endian {
             Endian::Little => add_trait_bounds(input.generics, parse_quote!(DecodeLE)),
             Endian::Big => add_trait_bounds(input.generics, parse_quote!(DecodeBE)),
             Endian::Mixed => add_trait_bounds(input.generics, parse_quote!(DecodeME)),
@@ -155,7 +155,7 @@ fn derive_endian_impl(
 
     // The generated impl.
     let expanded = match serde {
-        SerDe::Serialize => match endian {
+        Codec::Encode => match endian {
             Endian::Little => quote! {
                 impl #impl_generics EncodeLE for #name #ty_generics #where_clause {
                      fn encode_as_le_bytes(&self, bytes: &mut [u8]) {
@@ -179,7 +179,7 @@ fn derive_endian_impl(
             },
             Endian::Native => unimplemented!(),
         },
-        SerDe::Deserialize => match endian {
+        Codec::Decode => match endian {
             Endian::Little => quote! {
                 impl #impl_generics DecodeLE for #name #ty_generics #where_clause {
                      fn decode_from_le_bytes(bytes: &[u8]) -> Self {
@@ -211,17 +211,17 @@ fn derive_endian_impl(
 
 use syn::{punctuated::Punctuated, token::Comma, Field};
 
-fn serde_fields(fields: &Punctuated<Field, Comma>, endian: Endian, serde: SerDe) -> TokenStream {
+fn serde_fields(fields: &Punctuated<Field, Comma>, endian: Endian, serde: Codec) -> TokenStream {
     let mut beg_offset = quote! { 0 };
     let mut recurse = vec![];
     for field in fields.iter() {
         let name = &field.ident;
         let ty = &field.ty;
-        let struct_size = quote! { <#ty as EndianSize>::BYTES_LEN };
+        let struct_size = quote! { <#ty as PackedSize>::PACKED_LEN };
         let end_offset = quote! { #beg_offset + #struct_size };
         let bytes_slice = quote! { bytes[#beg_offset..#end_offset] };
         match serde {
-            SerDe::Serialize => match endian {
+            Codec::Encode => match endian {
                 Endian::Little => recurse.push(quote_spanned! {field.span()=>
                     debug_assert_eq!(#struct_size, #bytes_slice.len());
                     EncodeLE::encode_as_le_bytes(&self.#name, &mut #bytes_slice);
@@ -252,7 +252,7 @@ fn serde_fields(fields: &Punctuated<Field, Comma>, endian: Endian, serde: SerDe)
                 }
                 Endian::Native => unimplemented!(),
             },
-            SerDe::Deserialize => match endian {
+            Codec::Decode => match endian {
                 Endian::Little => recurse.push(quote_spanned! {field.span()=>
                     #name: DecodeLE::decode_from_le_bytes(& #bytes_slice),
                 }),
@@ -287,7 +287,7 @@ fn serde_fields(fields: &Punctuated<Field, Comma>, endian: Endian, serde: SerDe)
     }
 }
 
-fn serde_data_expands(data: &Data, endian: Endian, serde: SerDe) -> TokenStream {
+fn serde_data_expands(data: &Data, endian: Endian, serde: Codec) -> TokenStream {
     // this also contains `bytes` variable
     match *data {
         Data::Struct(ref data) => {

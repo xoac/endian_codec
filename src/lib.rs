@@ -11,17 +11,17 @@
 //!
 //! ## Examples
 //! ```rust
-//! use endian_codec::{EndianSize, EncodeLE, DecodeLE};
+//! use endian_codec::{PackedSize, EncodeLE, DecodeLE};
 //! // If you look at this structure you know without documentation it works with little endian
 //! // notation
-//! #[derive(Debug, PartialEq, Eq, EndianSize, EncodeLE, DecodeLE)]
+//! #[derive(Debug, PartialEq, Eq, PackedSize, EncodeLE, DecodeLE)]
 //! struct Version {
 //!   major: u16,
 //!   minor: u16,
 //!   patch: u16
 //! }
 //!
-//! let mut buf = [0; Version::BYTES_LEN]; // From EndianSize
+//! let mut buf = [0; Version::PACKED_LEN]; // From PackedSize
 //! let test = Version { major: 0, minor: 21, patch: 37 };
 //! // if you work with big and little endian you will not mix them accidentally
 //! test.encode_as_le_bytes(&mut buf);
@@ -31,11 +31,11 @@
 //!
 //! There can be also situation when you are forced to work with mixed endian in one struct.
 //! ```rust
-//! use endian_codec::{EndianSize, EncodeME};
+//! use endian_codec::{PackedSize, EncodeME};
 //! // even if you use only derive EncodeME you also need used traits in scope.
 //! use endian_codec::{EncodeLE, EncodeBE}; // for #[endian = "le/be"]
 //!
-//! #[derive(EndianSize, EncodeME)]
+//! #[derive(PackedSize, EncodeME)]
 //! // You work with very old system and there are mixed endianness
 //! // There will be only one format "le" or "little" in next minor version.
 //! struct Request {
@@ -47,7 +47,7 @@
 //!   timestamp: i128,
 //! }
 //!
-//! let mut buf = [0; Request::BYTES_LEN];
+//! let mut buf = [0; Request::PACKED_LEN];
 //! let req = Request {
 //!   cmd: 0x44,
 //!   value: 74,
@@ -83,12 +83,22 @@
 pub use endian_codec_derive::*;
 
 /// Serialized as little endian bytes.
-pub trait EncodeLE: EndianSize {
+pub trait EncodeLE: PackedSize {
+    /// Borrow self and packed it into bytes using little-endian representation.
+    ///
+    /// # Panics
+    ///
+    /// Panic if [PackedSize](PackedSize) represent different size than bytes slice.
     fn encode_as_le_bytes(&self, bytes: &mut [u8]);
 }
 
 /// Serialized as big endian bytes.
-pub trait EncodeBE: EndianSize {
+pub trait EncodeBE: PackedSize {
+    /// Borrow self and packed it into bytes using big-endian representation.
+    ///
+    /// # Panics
+    ///
+    /// Panic if [PackedSize](PackedSize) represent different size than bytes slice.
     fn encode_as_be_bytes(&self, bytes: &mut [u8]);
 }
 
@@ -96,37 +106,57 @@ pub trait EncodeBE: EndianSize {
 ///
 /// # Note
 /// If you only use big/little endian consider use [EncodeBE](EncodeBE) / [EncodeLE](EncodeLE) traits.
-pub trait EncodeME: EndianSize {
+pub trait EncodeME: PackedSize {
+    /// Borrow self and packed it into bytes using mixed(custom)-endian representation.
+    ///
+    /// # Panics
+    ///
+    /// Panic if [PackedSize](PackedSize) represent different size than bytes slice.
     fn encode_as_me_bytes(&self, bytes: &mut [u8]);
 }
 
-/// Deserialize from bytes stored as little endian.
-pub trait DecodeLE: EndianSize {
+/// Decode from bytes stored as little endian.
+pub trait DecodeLE: PackedSize {
+    /// Read `bytes` slice like packed little-endian bytes and create `Self` from them
+    ///
+    /// # Panics
+    ///
+    /// Panic if [PackedSize](PackedSize) represent different size than bytes slice.
     fn decode_from_le_bytes(bytes: &[u8]) -> Self;
 }
 
-/// Deserialize from bytes stored as big endian.
-pub trait DecodeBE: EndianSize {
+/// Decode from bytes stored as big endian.
+pub trait DecodeBE: PackedSize {
+    /// Read `bytes` slice like packed big-endian bytes and create `Self` from them
+    ///
+    /// # Panics
+    ///
+    /// Panic if [PackedSize](PackedSize) represent different size than bytes slice.
     fn decode_from_be_bytes(bytes: &[u8]) -> Self;
 }
 
-/// Deserialize from bytes stored as mixed endian.
+/// Decode from bytes stored as mixed endian.
 ///
 /// # Note
 /// If you only use big/little endian consider use [DecodeBE](DecodeBE) / [DecodeLE](DecodeLE) traits.
-pub trait DecodeME: EndianSize {
+pub trait DecodeME: PackedSize {
+    /// Read `bytes` slice like packed mixed(custom)-endian bytes and create `Self` from them
+    ///
+    /// # Panics
+    ///
+    /// Panic if [PackedSize](PackedSize) represent different size than bytes slice.
     fn decode_from_me_bytes(bytes: &[u8]) -> Self;
 }
 
 /// Represent size of struct when is serialized as bytes.
-pub trait EndianSize {
-    const BYTES_LEN: usize;
+pub trait PackedSize {
+    const PACKED_LEN: usize;
 }
 
 macro_rules! impl_serde_for_primitives {
     ($type:ty, $byte_len:expr) => {
-        impl EndianSize for $type {
-            const BYTES_LEN: usize = $byte_len;
+        impl PackedSize for $type {
+            const PACKED_LEN: usize = $byte_len;
         }
 
         impl EncodeLE for $type {
@@ -187,8 +217,8 @@ impl_serde_for_primitives!(i128, 16);
 
 macro_rules! impl_serde_for_array {
     ($type:ty, $size:expr) => {
-        impl EndianSize for $type {
-            const BYTES_LEN: usize = $size;
+        impl PackedSize for $type {
+            const PACKED_LEN: usize = $size;
         }
 
         impl EncodeBE for $type {
@@ -211,7 +241,7 @@ macro_rules! impl_serde_for_array {
 
         impl DecodeBE for $type {
             fn decode_from_be_bytes(bytes: &[u8]) -> Self {
-                let mut arr = [0; Self::BYTES_LEN];
+                let mut arr = [0; Self::PACKED_LEN];
                 arr.copy_from_slice(bytes);
                 arr
             }
@@ -219,7 +249,7 @@ macro_rules! impl_serde_for_array {
 
         impl DecodeLE for $type {
             fn decode_from_le_bytes(bytes: &[u8]) -> Self {
-                let mut arr = [0; Self::BYTES_LEN];
+                let mut arr = [0; Self::PACKED_LEN];
                 arr.copy_from_slice(bytes);
                 arr
             }
@@ -227,7 +257,7 @@ macro_rules! impl_serde_for_array {
 
         impl DecodeME for $type {
             fn decode_from_me_bytes(bytes: &[u8]) -> Self {
-                let mut arr = [0; Self::BYTES_LEN];
+                let mut arr = [0; Self::PACKED_LEN];
                 arr.copy_from_slice(bytes);
                 arr
             }
@@ -274,27 +304,27 @@ mod tests {
 
     #[test]
     fn derive_endian_size() {
-        #[derive(EndianSize)]
+        #[derive(PackedSize)]
         struct A {};
-        assert_eq!(A::BYTES_LEN, 0);
+        assert_eq!(A::PACKED_LEN, 0);
 
-        #[derive(EndianSize)]
+        #[derive(PackedSize)]
         struct B {
             _a: u16,
         }
-        assert_eq!(B::BYTES_LEN, 2);
+        assert_eq!(B::PACKED_LEN, 2);
 
-        #[derive(EndianSize)]
+        #[derive(PackedSize)]
         struct C {
             _a: u16,
             _b: u16,
         }
-        assert_eq!(C::BYTES_LEN, 2 + 2);
+        assert_eq!(C::PACKED_LEN, 2 + 2);
     }
 
     #[test]
     fn derive_littlendian_serialize() {
-        #[derive(EndianSize, EncodeLE)]
+        #[derive(PackedSize, EncodeLE)]
         struct Example {
             a: u16,
         }
@@ -306,7 +336,7 @@ mod tests {
 
     #[test]
     fn derive_bigendian_serialize() {
-        #[derive(EndianSize, EncodeBE)]
+        #[derive(PackedSize, EncodeBE)]
         struct Example {
             a: u16,
         }
@@ -318,7 +348,7 @@ mod tests {
 
     #[test]
     fn derive_mixed_endian_serialize() {
-        #[derive(EndianSize, EncodeME, Default)]
+        #[derive(PackedSize, EncodeME, Default)]
         struct Example {
             #[endian = "le"]
             a: u16,
@@ -337,7 +367,7 @@ mod tests {
 
     #[test]
     fn derive_all_serialize() {
-        #[derive(Default, EndianSize, EncodeLE, EncodeBE, EncodeME)]
+        #[derive(Default, PackedSize, EncodeLE, EncodeBE, EncodeME)]
         struct Example {
             #[endian = "be"]
             a: u16,
@@ -354,7 +384,7 @@ mod tests {
     #[test]
     fn derive_all() {
         #[derive(
-            Default, EndianSize, EncodeLE, EncodeBE, EncodeME, DecodeLE, DecodeBE, DecodeME,
+            Default, PackedSize, EncodeLE, EncodeBE, EncodeME, DecodeLE, DecodeBE, DecodeME,
         )]
         struct Example {
             #[endian = "be"]
