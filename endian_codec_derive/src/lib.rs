@@ -1,3 +1,9 @@
+//! This crate provide derive macros for [endian_codec] traits.
+//!
+//! Please refer to [endian_codec] to know how to set up.
+//!
+//! [endian_codec]:https://crates.io/crates/endian_codec
+
 extern crate proc_macro;
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
@@ -14,7 +20,6 @@ enum Endian {
     Big,
     Little,
     Mixed,
-    Native,
 }
 
 #[derive(Clone, Copy)]
@@ -138,13 +143,11 @@ fn derive_endian_impl(
             Endian::Little => add_trait_bounds(input.generics, parse_quote!(EncodeLE)),
             Endian::Big => add_trait_bounds(input.generics, parse_quote!(EncodeBE)),
             Endian::Mixed => add_trait_bounds(input.generics, parse_quote!(EncodeME)),
-            Endian::Native => unimplemented!(),
         },
         Codec::Decode => match endian {
             Endian::Little => add_trait_bounds(input.generics, parse_quote!(DecodeLE)),
             Endian::Big => add_trait_bounds(input.generics, parse_quote!(DecodeBE)),
             Endian::Mixed => add_trait_bounds(input.generics, parse_quote!(DecodeME)),
-            Endian::Native => unimplemented!(),
         },
     };
 
@@ -177,7 +180,6 @@ fn derive_endian_impl(
                      }
                 }
             },
-            Endian::Native => unimplemented!(),
         },
         Codec::Decode => match endian {
             Endian::Little => quote! {
@@ -201,7 +203,6 @@ fn derive_endian_impl(
                      }
                 }
             },
-            Endian::Native => unimplemented!(),
         },
     };
 
@@ -242,7 +243,7 @@ fn serde_fields(fields: &Punctuated<Field, Comma>, endian: Endian, serde: Codec)
                             debug_assert_eq!(#struct_size, #bytes_slice.len());
                             EncodeBE::encode_as_be_bytes(&self.#name, &mut #bytes_slice);
                         },
-                        Some(Endian::Mixed) | Some(Endian::Native) => unimplemented!(),
+                        Some(Endian::Mixed) => unimplemented!(),
                         None => quote_spanned! {field.span()=>
                           debug_assert_eq!(#struct_size, #bytes_slice.len());
                           EncodeME::encode_as_me_bytes(&self.#name, &mut #bytes_slice);
@@ -250,7 +251,6 @@ fn serde_fields(fields: &Punctuated<Field, Comma>, endian: Endian, serde: Codec)
                     };
                     recurse.push(r)
                 }
-                Endian::Native => unimplemented!(),
             },
             Codec::Decode => match endian {
                 Endian::Little => recurse.push(quote_spanned! {field.span()=>
@@ -269,14 +269,13 @@ fn serde_fields(fields: &Punctuated<Field, Comma>, endian: Endian, serde: Codec)
                         Some(Endian::Big) => quote_spanned! {field.span()=>
                             #name: DecodeBE::decode_from_be_bytes(& #bytes_slice),
                         },
-                        Some(Endian::Mixed) | Some(Endian::Native) => unimplemented!(),
+                        Some(Endian::Mixed) => unimplemented!(),
                         None => quote_spanned! {field.span()=>
                           #name: DecodeME::decode_from_me_bytes(& #bytes_slice),
                         },
                     };
                     recurse.push(r)
                 }
-                Endian::Native => unimplemented!(),
             },
         }
         beg_offset = quote! { #beg_offset + #struct_size }
