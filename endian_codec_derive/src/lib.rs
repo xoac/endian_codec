@@ -129,7 +129,7 @@ pub fn derive_endian_me_de_bytes(input: proc_macro::TokenStream) -> proc_macro::
 fn derive_endian_impl(
     input: proc_macro::TokenStream,
     endian: Endian,
-    serde: Codec,
+    codec: Codec,
 ) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree.
     let input = parse_macro_input!(input as DeriveInput);
@@ -138,7 +138,7 @@ fn derive_endian_impl(
     let name = input.ident;
 
     // Add a bound `T: (Big/Little/Mixed)Endian(Encode/Decode)` to every type parameter T.
-    let generics = match serde {
+    let generics = match codec {
         Codec::Encode => match endian {
             Endian::Little => add_trait_bounds(input.generics, parse_quote!(EncodeLE)),
             Endian::Big => add_trait_bounds(input.generics, parse_quote!(EncodeBE)),
@@ -154,13 +154,14 @@ fn derive_endian_impl(
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
     // Generate an expression to sum up the heap size of each field.
-    let body = serde_data_expands(&input.data, endian, serde);
+    let body = codec_data_expands(&input.data, endian, codec);
 
     // The generated impl.
-    let expanded = match serde {
+    let expanded = match codec {
         Codec::Encode => match endian {
             Endian::Little => quote! {
                 impl #impl_generics EncodeLE for #name #ty_generics #where_clause {
+                     #[inline]
                      fn encode_as_le_bytes(&self, bytes: &mut [u8]) {
                        #body
                      }
@@ -168,6 +169,7 @@ fn derive_endian_impl(
             },
             Endian::Big => quote! {
                 impl #impl_generics EncodeBE for #name #ty_generics #where_clause {
+                     #[inline]
                      fn encode_as_be_bytes(&self, bytes: &mut [u8]) {
                        #body
                      }
@@ -175,6 +177,7 @@ fn derive_endian_impl(
             },
             Endian::Mixed => quote! {
                 impl #impl_generics EncodeME for #name #ty_generics #where_clause {
+                     #[inline]
                      fn encode_as_me_bytes(&self, bytes: &mut [u8]) {
                        #body
                      }
@@ -184,6 +187,7 @@ fn derive_endian_impl(
         Codec::Decode => match endian {
             Endian::Little => quote! {
                 impl #impl_generics DecodeLE for #name #ty_generics #where_clause {
+                     #[inline]
                      fn decode_from_le_bytes(bytes: &[u8]) -> Self {
                        Self { #body }
                      }
@@ -191,6 +195,7 @@ fn derive_endian_impl(
             },
             Endian::Big => quote! {
                 impl #impl_generics DecodeBE for #name #ty_generics #where_clause {
+                     #[inline]
                      fn decode_from_be_bytes(bytes: &[u8]) -> Self {
                        Self { #body }
                      }
@@ -198,6 +203,7 @@ fn derive_endian_impl(
             },
             Endian::Mixed => quote! {
                 impl #impl_generics DecodeME for #name #ty_generics #where_clause {
+                     #[inline]
                      fn decode_from_me_bytes(bytes: &[u8]) -> Self {
                        Self { #body }
                      }
@@ -212,7 +218,7 @@ fn derive_endian_impl(
 
 use syn::{punctuated::Punctuated, token::Comma, Field};
 
-fn serde_fields(fields: &Punctuated<Field, Comma>, endian: Endian, serde: Codec) -> TokenStream {
+fn codec_fields(fields: &Punctuated<Field, Comma>, endian: Endian, codec: Codec) -> TokenStream {
     let mut beg_offset = quote! { 0 };
     let mut recurse = vec![];
     for field in fields.iter() {
@@ -221,7 +227,7 @@ fn serde_fields(fields: &Punctuated<Field, Comma>, endian: Endian, serde: Codec)
         let struct_size = quote! { <#ty as PackedSize>::PACKED_LEN };
         let end_offset = quote! { #beg_offset + #struct_size };
         let bytes_slice = quote! { bytes[#beg_offset..#end_offset] };
-        match serde {
+        match codec {
             Codec::Encode => match endian {
                 Endian::Little => recurse.push(quote_spanned! {field.span()=>
                     debug_assert_eq!(#struct_size, #bytes_slice.len());
@@ -286,13 +292,13 @@ fn serde_fields(fields: &Punctuated<Field, Comma>, endian: Endian, serde: Codec)
     }
 }
 
-fn serde_data_expands(data: &Data, endian: Endian, serde: Codec) -> TokenStream {
+fn codec_data_expands(data: &Data, endian: Endian, codec: Codec) -> TokenStream {
     // this also contains `bytes` variable
     match *data {
         Data::Struct(ref data) => {
             match data.fields {
-                Fields::Named(ref fields) => serde_fields(&fields.named, endian, serde),
-                Fields::Unnamed(ref fields) => serde_fields(&fields.unnamed, endian, serde),
+                Fields::Named(ref fields) => codec_fields(&fields.named, endian, codec),
+                Fields::Unnamed(ref fields) => codec_fields(&fields.unnamed, endian, codec),
                 Fields::Unit => {
                     // Unit structs cannot own more than 0 bytes of heap memory.
                     quote!(0)

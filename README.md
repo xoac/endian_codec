@@ -4,12 +4,12 @@ This crate helps serialize types as bytes and deserialize from bytes with a spec
 byte order. This crate can be used in [no_std] environment and has no external dependencies.
 
 If you are looking for a small universal binary (de)serializer that works with
-serde, look at [bincode].
+[serde], look at [bincode].
 
 Main features:
 * A clean way to convert structures to endians and back
 * Derive
-* no_std and no external dependencies
+* `no_std` and no external dependencies
 
 ### Examples
 ```rust
@@ -79,5 +79,6 @@ variables in the desired endian format.
 [simple_endian]:https://crates.io/crates/simple_endian
 [struct_deser]:https://crates.io/crates/struct_deser
 [no_std]:https://rust-embedded.github.io/book/intro/no-std.html
+[serde]:https://crates.io/crates/serde
 
 License: Apache-2.0 OR MIT
