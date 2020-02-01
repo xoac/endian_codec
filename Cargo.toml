@@ -14,7 +14,7 @@ license = "Apache-2.0 OR MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-endian_codec_derive = { path = "endian_codec_derive", optional = true }
+endian_codec_derive = { version = "0.1", optional = true }
 
 [features]
 default = ["derive"]
