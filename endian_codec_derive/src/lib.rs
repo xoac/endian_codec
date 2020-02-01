@@ -318,11 +318,3 @@ fn add_trait_bounds(mut generics: Generics, trait_bound: TypeParamBound) -> Gene
     }
     generics
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}

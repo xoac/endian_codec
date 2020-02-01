@@ -427,6 +427,135 @@ mod tests {
         t.encode_as_le_bytes(&mut b);
     }
 
+    #[test]
+    fn test_codec_2bytes_primitives() {
+        #[derive(Debug, PartialEq, Eq, PackedSize, EncodeLE, DecodeLE, EncodeBE, DecodeBE)]
+        struct A {
+            a: u16,
+            b: i16,
+        }
+
+        let test = A { a: 0x2F, b: 0x2F00 };
+        assert_eq!(A::PACKED_LEN, 4);
+        let mut bytes = [0; A::PACKED_LEN];
+
+        // LE
+        test.encode_as_le_bytes(&mut bytes);
+        assert_eq!([47, 0, 0, 47], bytes);
+
+        let test_back = A::decode_from_le_bytes(&bytes);
+        assert_eq!(test, test_back);
+
+        //BE
+        test.encode_as_be_bytes(&mut bytes);
+        assert_eq!([0, 47, 47, 0], bytes);
+
+        let test_back = A::decode_from_be_bytes(&bytes);
+        assert_eq!(test, test_back);
+    }
+
+    #[test]
+    fn test_codec_4bytes_primitives() {
+        #[derive(Debug, PartialEq, Eq, PackedSize, EncodeLE, DecodeLE, EncodeBE, DecodeBE)]
+        struct A {
+            a: u32,
+            b: i32,
+        }
+
+        let test = A {
+            a: 0x2F,
+            b: 0x2F000000,
+        };
+        assert_eq!(A::PACKED_LEN, 8);
+        let mut bytes = [0; A::PACKED_LEN];
+
+        // LE
+        test.encode_as_le_bytes(&mut bytes);
+        assert_eq!([47, 0, 0, 0, 0, 0, 0, 47], bytes);
+
+        let test_back = A::decode_from_le_bytes(&bytes);
+        assert_eq!(test, test_back);
+
+        //BE
+        test.encode_as_be_bytes(&mut bytes);
+        assert_eq!([0, 0, 0, 47, 47, 0, 0, 0], bytes);
+
+        let test_back = A::decode_from_be_bytes(&bytes);
+        assert_eq!(test, test_back);
+    }
+
+    #[test]
+    fn test_codec_8bytes_primitives() {
+        #[derive(Debug, PartialEq, Eq, PackedSize, EncodeLE, DecodeLE, EncodeBE, DecodeBE)]
+        struct A {
+            a: u64,
+            b: i64,
+        }
+
+        let test = A {
+            a: 0x2F,
+            b: 0x2F000000_00000000,
+        };
+        assert_eq!(A::PACKED_LEN, 16);
+        let mut bytes = [0; A::PACKED_LEN];
+
+        // LE
+        test.encode_as_le_bytes(&mut bytes);
+        assert_eq!([47, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 47], bytes);
+
+        let test_back = A::decode_from_le_bytes(&bytes);
+        assert_eq!(test, test_back);
+
+        //BE
+        test.encode_as_be_bytes(&mut bytes);
+        assert_eq!([0, 0, 0, 0, 0, 0, 0, 47, 47, 0, 0, 0, 0, 0, 0, 0,], bytes);
+
+        let test_back = A::decode_from_be_bytes(&bytes);
+        assert_eq!(test, test_back);
+    }
+
+    #[test]
+    fn test_codec_16bytes_primitives() {
+        #[derive(Debug, PartialEq, Eq, PackedSize, EncodeLE, DecodeLE, EncodeBE, DecodeBE)]
+        struct A {
+            a: u128,
+            b: i128,
+        }
+
+        let test = A {
+            a: 0x2F,
+            b: 0x2F000000_00000000_00000000_00000000,
+        };
+        assert_eq!(A::PACKED_LEN, 32);
+        let mut bytes = [0; A::PACKED_LEN];
+
+        // LE
+        test.encode_as_le_bytes(&mut bytes);
+        assert_eq!(
+            [
+                47, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 47
+            ],
+            bytes
+        );
+
+        let test_back = A::decode_from_le_bytes(&bytes);
+        assert_eq!(test, test_back);
+
+        //BE
+        test.encode_as_be_bytes(&mut bytes);
+        assert_eq!(
+            [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 47, 47, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0,
+            ],
+            bytes
+        );
+
+        let test_back = A::decode_from_be_bytes(&bytes);
+        assert_eq!(test, test_back);
+    }
+
     /*
     #[test]
     fn derive_parameters() {
