@@ -3,7 +3,7 @@
 use crate::Endian;
 use syn::{Attribute, Lit, Meta};
 
-pub(crate) fn endian_from_attribute(attrs: &Vec<Attribute>) -> Option<Endian> {
+pub(crate) fn endian_from_attribute(attrs: &[Attribute]) -> Option<Endian> {
     let mut endian = None;
     for attr in attrs {
         if !attr.path.is_ident("endian") {
