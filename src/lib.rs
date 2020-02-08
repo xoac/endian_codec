@@ -557,19 +557,16 @@ mod tests {
     }
 
     /*
+     This will not compile because EncodeME derive require A to implement EncodeME.
     #[test]
     fn derive_parameters() {
-        #[derive(EncodeLE)]
+        #[derive(PackedSize, EncodeME)]
         struct Example<A> {
+            #[endian = "big"]
             a: A,
-            #[endian(be)]
+            #[endian = "little"]
             be: u16,
         }
-
-        // jak to sie ma zachować w przypadku kiedy a: nie jest primitivem czyli jest dla nie
-        // zaimplemenotwane  EndianSerBytes a kiedy jest to u32. W przypadku u32 takie coś nie
-        // 1. w przypadku u32 takie coś nie powinno działać
-        // 2. w przypadku A: EndianSerBytes powinno.
     }
     */
 }
