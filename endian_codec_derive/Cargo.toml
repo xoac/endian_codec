@@ -1,6 +1,6 @@
 [package]
 name = "endian_codec_derive"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Sylwester Rąpała <sylwesterrapala@outlook.com>"]
 edition = "2018"
 
@@ -9,6 +9,10 @@ description = "Macros implementation for endian_codec crate"
 repository = "https://github.com/xoac/endian_codec"
 categories = ["no-std", "parsing"]
 keywords = ["derive", "endian", "bytes"]
+readme = "README.md"
+
+[badges]
+maintenance = { status = "actively-developed" }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

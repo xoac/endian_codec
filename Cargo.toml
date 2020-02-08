@@ -1,7 +1,7 @@
 [package]
 name = "endian_codec"
 description = "(De/En)code rust types as packed bytes with specific order"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Sylwester Rąpała <sylwesterrapala@outlook.com>"]
 edition = "2018"
 
@@ -10,7 +10,10 @@ repository="https://github.com/xoac/endian_codec"
 keywords = ["no_std", "endian", "bytes"]
 categories = ["no-std", "parsing"]
 license = "Apache-2.0 OR MIT"
+readme = "README.md"
 
+[badges]
+maintenance = { status = "actively-developed" }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
