@@ -74,6 +74,7 @@ req.encode_as_me_bytes(&mut buf);
 #### There are a few other crates that deal with endians:
 * [byteorder] -  Library for reading/writing numbers in big-endian and little-endian.
 * [bytes] - Buf and BufMut traits that have methods to put and get primitives in the desired endian format.
+* [packed_struct] - Safe struct (un-) packing with bit-level control
 * [simple_endian] - Instead of providing functions that convert - create types that store
 variables in the desired endian format.
 * [struct_deser] - Inspiration for this crate - but in a more clean and rusty way.
@@ -82,6 +83,7 @@ variables in the desired endian format.
 [bincode]:https://crates.io/crates/bincode
 [byteorder]:https://crates.io/crates/byteorder
 [bytes]:https://crates.io/crates/bytes
+[packed_struct]:https://crates.io/crates/packed_struct
 [simple_endian]:https://crates.io/crates/simple_endian
 [struct_deser]:https://crates.io/crates/struct_deser
 [no_std]:https://rust-embedded.github.io/book/intro/no-std.html
