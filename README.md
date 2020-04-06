@@ -83,7 +83,7 @@ variables in the desired endian format.
 [bincode]:https://crates.io/crates/bincode
 [byteorder]:https://crates.io/crates/byteorder
 [bytes]:https://crates.io/crates/bytes
-[packed_struct]:https://docs.rs/packed_struct/0.3.0/packed_struct/
+[packed_struct]:https://crates.io/crates/packed_struct
 [simple_endian]:https://crates.io/crates/simple_endian
 [struct_deser]:https://crates.io/crates/struct_deser
 [no_std]:https://rust-embedded.github.io/book/intro/no-std.html
