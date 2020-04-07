@@ -5,9 +5,10 @@
 //! [serde], look at [bincode].
 //!
 //! Main features:
-//! * A clean way to convert structures to endians and back
+//! * A clean way to convert structures to bytes( with bytes order) and back
 //! * Derive
-//! * `no_std` and no external dependencies
+//! * `no_std`
+//! * no external dependencies
 //!
 //! ## Examples
 //! ```rust
@@ -58,18 +59,19 @@
 //!
 //! ```
 //!
-//! ### Why another crate to handle endians?
+//! ### Why another crate to handle endianess?
 //! * Easy byteorder-encoding structs with multiple fields and consistent encoding
 //! * Learning how to create custom derives
-//! * Making a cleaner API
+//! * Making a clean API and auto document code.
 //!
-//! ### There are a few other crates that deal with endians:
+//! ### There are a few other crates that do a similar things:
 //! * [byteorder] -  Library for reading/writing numbers in big-endian and little-endian.
 //! * [bytes] - Buf and BufMut traits that have methods to put and get primitives in the desired endian format.
-//! * [packed_struct] - Safe struct (un-) packing with bit-level control
-//! * [simple_endian] - Instead of providing functions that convert - create types that store
+//! * [packed_struct] - Safe struct (un-) packing with bit-level control.
+//! * [simple_endian] - Instead of providing functions that convert - create types that store.
 //! variables in the desired endian format.
-//! * [struct_deser] - Inspiration for this crate - but in a more clean and rusty way.
+//! * [struct_deser] - Inspiration for this crate.
+//!
 //!
 //!
 //! [bincode]:https://crates.io/crates/bincode

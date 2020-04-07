@@ -1,13 +1,13 @@
 [package]
 name = "endian_codec"
-description = "(De/En)code rust types as packed bytes with specific order"
+description = "Decode / Encode rust types as packed bytes with specific bytes order"
 version = "0.1.1"
 authors = ["Sylwester Rąpała <sylwesterrapala@outlook.com>"]
 edition = "2018"
 
 documentation="https://docs.rs/endian_codec"
 repository="https://github.com/xoac/endian_codec"
-keywords = ["no_std", "endian", "bytes"]
+keywords = ["packed", "bytes", "packing struct", "endianess"]
 categories = ["no-std", "parsing"]
 license = "Apache-2.0 OR MIT"
 readme = "README.md"
