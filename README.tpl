@@ -1,7 +1,6 @@
 [![crates.io](https://img.shields.io/crates/v/endian_codec.svg)](https://crates.io/crates/endian_codec)
 [![Documentation](https://docs.rs/endian_codec/badge.svg)](https://docs.rs/endian_codec/)
 ![CI master](https://github.com/xoac/endian_codec/workflows/Continuous%20integration/badge.svg?branch=master)
-{{badges}}
 derive: [![crates.io](https://img.shields.io/crates/v/endian_codec_derive.svg)](https://crates.io/crates/endian_codec_derive)
 
 # {{crate}}
