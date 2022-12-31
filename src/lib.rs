@@ -89,22 +89,22 @@ pub use endian_codec_derive::*;
 
 /// Encoded as little-endian bytes.
 pub trait EncodeLE: PackedSize {
-    /// Borrow `self` and pack into `bytes` using little-endian representation.
+    /// Borrow `self` and pack into `bytes` using little-endian representation. Return the packed size in bytes.
     ///
     /// # Panics
     /// Panic if [PackedSize](PackedSize) represents a different size than `bytes` slice.
     ///
-    fn encode_as_le_bytes(&self, bytes: &mut [u8]);
+    fn encode_as_le_bytes(&self, bytes: &mut [u8]) -> usize;
 }
 
 /// Encoded as big-endian bytes.
 pub trait EncodeBE: PackedSize {
-    /// Borrow `self` and pack into `bytes` using big-endian representation.
+    /// Borrow `self` and pack into `bytes` using big-endian representation. Return the packed size in bytes.
     ///
     /// # Panics
     ///
     /// Panic if [PackedSize](PackedSize) represents a different size than `bytes` slice.
-    fn encode_as_be_bytes(&self, bytes: &mut [u8]);
+    fn encode_as_be_bytes(&self, bytes: &mut [u8]) -> usize;
 }
 
 /// Encode using mixed-endian bytes.
@@ -112,12 +112,12 @@ pub trait EncodeBE: PackedSize {
 /// # Note
 /// If you only use big-/little-endians, consider using [EncodeBE](EncodeBE) / [EncodeLE](EncodeLE) traits instead.
 pub trait EncodeME: PackedSize {
-    /// Borrow `self` and pack into `bytes` using mixed(custom)-endian representation.
+    /// Borrow `self` and pack into `bytes` using mixed(custom)-endian representation. Return the packed size in bytes.
     ///
     /// # Panics
     ///
     /// Panic if [PackedSize](PackedSize) represents a different size than `bytes` slice.
-    fn encode_as_me_bytes(&self, bytes: &mut [u8]);
+    fn encode_as_me_bytes(&self, bytes: &mut [u8]) -> usize;
 }
 
 /// Decode from bytes stored as a little-endian.
@@ -182,15 +182,17 @@ macro_rules! impl_codec_for_primitives {
 
         impl EncodeLE for $type {
             #[inline]
-            fn encode_as_le_bytes(&self, bytes: &mut [u8]) {
-                bytes.copy_from_slice(&(self.to_le_bytes()))
+            fn encode_as_le_bytes(&self, bytes: &mut [u8]) -> usize {
+                bytes.copy_from_slice(&(self.to_le_bytes()));
+                $byte_len
             }
         }
 
         impl EncodeBE for $type {
             #[inline]
-            fn encode_as_be_bytes(&self, bytes: &mut [u8]) {
-                bytes.copy_from_slice(&(self.to_be_bytes()))
+            fn encode_as_be_bytes(&self, bytes: &mut [u8]) -> usize {
+                bytes.copy_from_slice(&(self.to_be_bytes()));
+                $byte_len
             }
         }
 
@@ -219,8 +221,9 @@ impl_codec_for_primitives!(i8, 1);
 
 impl EncodeME for u8 {
     #[inline]
-    fn encode_as_me_bytes(&self, bytes: &mut [u8]) {
+    fn encode_as_me_bytes(&self, bytes: &mut [u8]) -> usize {
         bytes.copy_from_slice(&(self.to_be_bytes()));
+        1
     }
 }
 
@@ -242,94 +245,84 @@ impl_codec_for_primitives!(i64, 8);
 impl_codec_for_primitives!(u128, 16);
 impl_codec_for_primitives!(i128, 16);
 
-macro_rules! impl_codec_for_array {
-    ($type:ty, $size:expr) => {
-        impl PackedSize for $type {
-            const PACKED_LEN: usize = $size;
-        }
-
-        impl EncodeBE for $type {
-            #[inline]
-            fn encode_as_be_bytes(&self, bytes: &mut [u8]) {
-                bytes.copy_from_slice(self);
-            }
-        }
-
-        impl EncodeLE for $type {
-            #[inline]
-            fn encode_as_le_bytes(&self, bytes: &mut [u8]) {
-                bytes.copy_from_slice(self);
-            }
-        }
-
-        impl EncodeME for $type {
-            #[inline]
-            fn encode_as_me_bytes(&self, bytes: &mut [u8]) {
-                bytes.copy_from_slice(self);
-            }
-        }
-
-        impl DecodeBE for $type {
-            #[inline]
-            fn decode_from_be_bytes(bytes: &[u8]) -> Self {
-                let mut arr = [0; Self::PACKED_LEN];
-                arr.copy_from_slice(bytes);
-                arr
-            }
-        }
-
-        impl DecodeLE for $type {
-            #[inline]
-            fn decode_from_le_bytes(bytes: &[u8]) -> Self {
-                let mut arr = [0; Self::PACKED_LEN];
-                arr.copy_from_slice(bytes);
-                arr
-            }
-        }
-
-        impl DecodeME for $type {
-            #[inline]
-            fn decode_from_me_bytes(bytes: &[u8]) -> Self {
-                let mut arr = [0; Self::PACKED_LEN];
-                arr.copy_from_slice(bytes);
-                arr
-            }
-        }
-    };
+impl<T: PackedSize, const S: usize> PackedSize for [T; S] {
+    const PACKED_LEN: usize = T::PACKED_LEN * S;
 }
 
-impl_codec_for_array!([u8; 1], 1);
-impl_codec_for_array!([u8; 2], 2);
-impl_codec_for_array!([u8; 3], 3);
-impl_codec_for_array!([u8; 4], 4);
-impl_codec_for_array!([u8; 5], 5);
-impl_codec_for_array!([u8; 6], 6);
-impl_codec_for_array!([u8; 7], 7);
-impl_codec_for_array!([u8; 8], 8);
-impl_codec_for_array!([u8; 9], 9);
-impl_codec_for_array!([u8; 10], 10);
-impl_codec_for_array!([u8; 11], 11);
-impl_codec_for_array!([u8; 12], 12);
-impl_codec_for_array!([u8; 13], 13);
-impl_codec_for_array!([u8; 14], 14);
-impl_codec_for_array!([u8; 15], 15);
-impl_codec_for_array!([u8; 16], 16);
-impl_codec_for_array!([u8; 17], 17);
-impl_codec_for_array!([u8; 18], 18);
-impl_codec_for_array!([u8; 19], 19);
-impl_codec_for_array!([u8; 20], 20);
-impl_codec_for_array!([u8; 21], 21);
-impl_codec_for_array!([u8; 22], 22);
-impl_codec_for_array!([u8; 23], 23);
-impl_codec_for_array!([u8; 24], 24);
-impl_codec_for_array!([u8; 25], 25);
-impl_codec_for_array!([u8; 26], 26);
-impl_codec_for_array!([u8; 27], 27);
-impl_codec_for_array!([u8; 28], 28);
-impl_codec_for_array!([u8; 29], 29);
-impl_codec_for_array!([u8; 30], 30);
-impl_codec_for_array!([u8; 31], 31);
-impl_codec_for_array!([u8; 32], 32);
+impl<T: EncodeBE, const S: usize> EncodeBE for [T; S] {
+    fn encode_as_be_bytes(&self, bytes: &mut [u8]) -> usize {
+        let size = T::PACKED_LEN;
+
+        for (i, value) in self.iter().enumerate() {
+            value.encode_as_be_bytes(&mut bytes[i * size..(i + 1) * size]);
+        }
+
+        size * self.len()
+    }
+}
+
+impl<T: EncodeLE, const S: usize> EncodeLE for [T; S] {
+    fn encode_as_le_bytes(&self, bytes: &mut [u8]) -> usize {
+        let size = T::PACKED_LEN;
+
+        for (i, value) in self.iter().enumerate() {
+            value.encode_as_le_bytes(&mut bytes[i * size..(i + 1) * size]);
+        }
+
+        size * self.len()
+    }
+}
+
+impl<T: EncodeME, const S: usize> EncodeME for [T; S] {
+    fn encode_as_me_bytes(&self, bytes: &mut [u8]) -> usize {
+        let size = T::PACKED_LEN;
+
+        for (i, value) in self.iter().enumerate() {
+            value.encode_as_me_bytes(&mut bytes[i * size..(i + 1) * size]);
+        }
+
+        size * self.len()
+    }
+}
+
+impl<T: DecodeBE, const S: usize> DecodeBE for [T; S] {
+    fn decode_from_be_bytes(bytes: &[u8]) -> Self {
+        let size = T::PACKED_LEN;
+        let mut i: usize = 0;
+
+        [(); S].map(|_| {
+            let res = T::decode_from_be_bytes(&bytes[i * size..(i + 1) * size]);
+            i += 1;
+            res
+        })
+    }
+}
+
+impl<T: DecodeLE, const S: usize> DecodeLE for [T; S] {
+    fn decode_from_le_bytes(bytes: &[u8]) -> Self {
+        let size = T::PACKED_LEN;
+        let mut i: usize = 0;
+
+        [(); S].map(|_| {
+            let res = T::decode_from_le_bytes(&bytes[i * size..(i + 1) * size]);
+            i += 1;
+            res
+        })
+    }
+}
+
+impl<T: DecodeME, const S: usize> DecodeME for [T; S] {
+    fn decode_from_me_bytes(bytes: &[u8]) -> Self {
+        let size = T::PACKED_LEN;
+        let mut i: usize = 0;
+
+        [(); S].map(|_| {
+            let res = T::decode_from_me_bytes(&bytes[i * size..(i + 1) * size]);
+            i += 1;
+            res
+        })
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -444,15 +437,17 @@ mod tests {
         let mut bytes = [0; A::PACKED_LEN];
 
         // LE
-        test.encode_as_le_bytes(&mut bytes);
+        let size = test.encode_as_le_bytes(&mut bytes);
         assert_eq!([47, 0, 0, 47], bytes);
+        assert_eq!(A::PACKED_LEN, size);
 
         let test_back = A::decode_from_le_bytes(&bytes);
         assert_eq!(test, test_back);
 
         //BE
-        test.encode_as_be_bytes(&mut bytes);
+        let size = test.encode_as_be_bytes(&mut bytes);
         assert_eq!([0, 47, 47, 0], bytes);
+        assert_eq!(A::PACKED_LEN, size);
 
         let test_back = A::decode_from_be_bytes(&bytes);
         assert_eq!(test, test_back);
@@ -474,15 +469,17 @@ mod tests {
         let mut bytes = [0; A::PACKED_LEN];
 
         // LE
-        test.encode_as_le_bytes(&mut bytes);
+        let size = test.encode_as_le_bytes(&mut bytes);
         assert_eq!([47, 0, 0, 0, 0, 0, 0, 47], bytes);
+        assert_eq!(A::PACKED_LEN, size);
 
         let test_back = A::decode_from_le_bytes(&bytes);
         assert_eq!(test, test_back);
 
         //BE
-        test.encode_as_be_bytes(&mut bytes);
+        let size = test.encode_as_be_bytes(&mut bytes);
         assert_eq!([0, 0, 0, 47, 47, 0, 0, 0], bytes);
+        assert_eq!(A::PACKED_LEN, size);
 
         let test_back = A::decode_from_be_bytes(&bytes);
         assert_eq!(test, test_back);
@@ -504,15 +501,17 @@ mod tests {
         let mut bytes = [0; A::PACKED_LEN];
 
         // LE
-        test.encode_as_le_bytes(&mut bytes);
+        let size = test.encode_as_le_bytes(&mut bytes);
         assert_eq!([47, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 47], bytes);
+        assert_eq!(A::PACKED_LEN, size);
 
         let test_back = A::decode_from_le_bytes(&bytes);
         assert_eq!(test, test_back);
 
         //BE
-        test.encode_as_be_bytes(&mut bytes);
+        let size = test.encode_as_be_bytes(&mut bytes);
         assert_eq!([0, 0, 0, 0, 0, 0, 0, 47, 47, 0, 0, 0, 0, 0, 0, 0,], bytes);
+        assert_eq!(A::PACKED_LEN, size);
 
         let test_back = A::decode_from_be_bytes(&bytes);
         assert_eq!(test, test_back);
@@ -534,7 +533,7 @@ mod tests {
         let mut bytes = [0; A::PACKED_LEN];
 
         // LE
-        test.encode_as_le_bytes(&mut bytes);
+        let size = test.encode_as_le_bytes(&mut bytes);
         assert_eq!(
             [
                 47, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -542,12 +541,13 @@ mod tests {
             ],
             bytes
         );
+        assert_eq!(A::PACKED_LEN, size);
 
         let test_back = A::decode_from_le_bytes(&bytes);
         assert_eq!(test, test_back);
 
         //BE
-        test.encode_as_be_bytes(&mut bytes);
+        let size = test.encode_as_be_bytes(&mut bytes);
         assert_eq!(
             [
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 47, 47, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -555,6 +555,77 @@ mod tests {
             ],
             bytes
         );
+        assert_eq!(A::PACKED_LEN, size);
+
+        let test_back = A::decode_from_be_bytes(&bytes);
+        assert_eq!(test, test_back);
+    }
+
+    #[test]
+    fn test_codec_nested() {
+        #[derive(Debug, PartialEq, Eq, PackedSize, EncodeLE, DecodeLE, EncodeBE, DecodeBE)]
+        struct A {
+            a: u32,
+            b: u8,
+        }
+
+        #[derive(Debug, PartialEq, Eq, PackedSize, EncodeLE, DecodeLE, EncodeBE, DecodeBE)]
+        struct B {
+            a: A,
+            b: u16,
+        }
+
+        let test = B {
+            a: A { a: 0x2F, b: 0x88 },
+            b: 0x55,
+        };
+
+        assert_eq!(B::PACKED_LEN, 7);
+        let mut bytes = [0; B::PACKED_LEN];
+
+        // LE
+        let size = test.encode_as_le_bytes(&mut bytes);
+        assert_eq!([0x2f, 0, 0, 0, 0x88, 0x55, 0], bytes);
+        assert_eq!(B::PACKED_LEN, size);
+
+        let test_back = B::decode_from_le_bytes(&bytes);
+        assert_eq!(test, test_back);
+
+        //BE
+        let size = test.encode_as_be_bytes(&mut bytes);
+        assert_eq!([0, 0, 0, 0x2f, 0x88, 0, 0x55], bytes);
+        assert_eq!(B::PACKED_LEN, size);
+
+        let test_back = B::decode_from_be_bytes(&bytes);
+        assert_eq!(test, test_back);
+    }
+
+    #[test]
+    fn test_codec_array() {
+        type A = [u16; 8];
+
+        let mut i = 0;
+        let test: A = [(); 8].map(|_| {
+            let ret = i as u16;
+            i += 1;
+            ret
+        });
+
+        assert_eq!(A::PACKED_LEN, 16);
+        let mut bytes = [0; A::PACKED_LEN];
+
+        //LE
+        let size = test.encode_as_le_bytes(&mut bytes);
+        assert_eq!([0, 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0], bytes);
+        assert_eq!(A::PACKED_LEN, size);
+
+        let test_back = A::decode_from_le_bytes(&bytes);
+        assert_eq!(test, test_back);
+
+        //BE
+        let size = test.encode_as_be_bytes(&mut bytes);
+        assert_eq!([0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7], bytes);
+        assert_eq!(A::PACKED_LEN, size);
 
         let test_back = A::decode_from_be_bytes(&bytes);
         assert_eq!(test, test_back);

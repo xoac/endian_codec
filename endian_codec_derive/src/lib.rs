@@ -162,24 +162,27 @@ fn derive_endian_impl(
             Endian::Little => quote! {
                 impl #impl_generics EncodeLE for #name #ty_generics #where_clause {
                      #[inline]
-                     fn encode_as_le_bytes(&self, bytes: &mut [u8]) {
+                     fn encode_as_le_bytes(&self, bytes: &mut [u8]) -> usize {
                        #body
+                       Self::PACKED_LEN
                      }
                 }
             },
             Endian::Big => quote! {
                 impl #impl_generics EncodeBE for #name #ty_generics #where_clause {
                      #[inline]
-                     fn encode_as_be_bytes(&self, bytes: &mut [u8]) {
+                     fn encode_as_be_bytes(&self, bytes: &mut [u8]) -> usize {
                        #body
+                       Self::PACKED_LEN
                      }
                 }
             },
             Endian::Mixed => quote! {
                 impl #impl_generics EncodeME for #name #ty_generics #where_clause {
                      #[inline]
-                     fn encode_as_me_bytes(&self, bytes: &mut [u8]) {
+                     fn encode_as_me_bytes(&self, bytes: &mut [u8]) -> usize {
                        #body
+                       Self::PACKED_LEN
                      }
                 }
             },
